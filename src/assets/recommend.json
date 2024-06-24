@@ -1,0 +1,14 @@
+[
+  {
+    "key": "English Prompts",
+    "desc": "A set of English prompts for ChatGPT",
+    "downloadUrl": "https://raw.githubusercontent.com/RyanXinOne/chat-prompts/main/prompts_en.json",
+    "url": "https://github.com/RyanXinOne/chat-prompts"
+  },
+  {
+    "key": "中文提示词",
+    "desc": "一组ChatGPT中文提示词",
+    "downloadUrl": "https://raw.githubusercontent.com/RyanXinOne/chat-prompts/main/prompts_zh.json",
+    "url": "https://github.com/RyanXinOne/chat-prompts"
+  }
+]

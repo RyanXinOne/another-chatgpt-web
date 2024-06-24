@@ -28,4 +28,7 @@ coverage
 *.sln
 *.sw?
 
-# Environment variables files
+build/
+public/
+.env
+auth.json
