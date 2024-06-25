@@ -46,6 +46,11 @@ const options = computed(() => {
       icon: iconRender({ icon: 'ri:file-copy-2-line' }),
     },
     {
+      label: t('common.edit'),
+      key: 'edit',
+      icon: iconRender({ icon: 'ri:edit-line' }),
+    },
+    {
       label: t('common.delete'),
       key: 'delete',
       icon: iconRender({ icon: 'ri:delete-bin-line' }),
