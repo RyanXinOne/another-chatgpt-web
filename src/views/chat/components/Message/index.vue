@@ -8,6 +8,7 @@ import { useIconRender } from '@/hooks/useIconRender'
 import { t } from '@/locales'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { copyToClip } from '@/utils/copy'
+import EditDialogue  from './EditDialogue.vue'
 
 interface Props {
   dateTime?: string
@@ -37,6 +38,8 @@ const textRef = ref<HTMLElement>()
 const asRawText = ref(props.inversion)
 
 const messageRef = ref<HTMLElement>()
+
+const showEdit = ref(false)
 
 const options = computed(() => {
   const common = [
@@ -78,8 +81,10 @@ function handleSelect(key: 'copyText' | 'delete' | 'toggleRenderType' | 'edit') 
       return
     case 'delete':
       emit('delete')
+      return
     case 'edit':
-      
+      showEdit.value = true
+      return
   }
 }
 
@@ -148,5 +153,8 @@ async function handleCopy() {
         </div>
       </div>
     </div>
+  </div>
+  <div>
+    <EditDialogue :content="'Testing...'"/>
   </div>
 </template>
