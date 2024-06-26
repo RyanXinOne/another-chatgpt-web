@@ -14,8 +14,6 @@ export function sendResponse<T>(options: SendResponseOptions<T>) {
       status: options.type,
     })
   }
-
-  // eslint-disable-next-line prefer-promise-reject-errors
   return Promise.reject({
     message: options.message ?? 'Failed',
     data: options.data ?? null,
