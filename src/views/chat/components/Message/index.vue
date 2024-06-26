@@ -68,7 +68,7 @@ const options = computed(() => {
   return common
 })
 
-function handleSelect(key: 'copyText' | 'delete' | 'toggleRenderType') {
+function handleSelect(key: 'copyText' | 'delete' | 'toggleRenderType' | 'edit') {
   switch (key) {
     case 'copyText':
       handleCopy()
@@ -78,6 +78,8 @@ function handleSelect(key: 'copyText' | 'delete' | 'toggleRenderType') {
       return
     case 'delete':
       emit('delete')
+    case 'edit':
+      
   }
 }
 
