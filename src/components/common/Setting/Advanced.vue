@@ -1,20 +1,33 @@
 <script lang="ts" setup>
-import { ref } from 'vue'
-import { NButton, NInput, NSlider, useMessage } from 'naive-ui'
+import { computed, ref } from 'vue'
+import { NButton, NInput, NSelect, NSlider, useMessage } from 'naive-ui'
 import { useSettingStore } from '@/store'
-import type { SettingsState } from '@/store/modules/settings/helper'
+import type { Model, SettingsState } from '@/store/modules/settings/helper'
 import { t } from '@/locales'
-import { gpt4Enabled } from '@/api'
 
 const settingStore = useSettingStore()
 
 const ms = useMessage()
 
-const systemMessage = ref(settingStore.systemMessage ?? '')
+const model = computed({
+  get() {
+    return settingStore.model
+  },
+  set(value: Model) {
+    settingStore.updateSetting({ model: value })
+  },
+})
 
-const temperature = ref(settingStore.temperature ?? 0.5)
+const modelOptions: { label: string; key: Model; value: Model }[] = [
+  { label: 'gpt-4o', key: 'gpt-4o', value: 'gpt-4o' },
+  { label: 'gpt-3.5-turbo', key: 'gpt-3.5-turbo', value: 'gpt-3.5-turbo' },
+]
 
-const top_p = ref(settingStore.top_p ?? 1)
+const systemMessage = ref(settingStore.systemMessage)
+
+const temperature = ref(settingStore.temperature)
+
+const top_p = ref(settingStore.top_p)
 
 function updateSettings(options: Partial<SettingsState>) {
   settingStore.updateSetting(options)
@@ -26,22 +39,20 @@ function handleReset() {
   ms.success(t('common.success'))
   window.location.reload()
 }
-
-function handleGPT4() {
-  if (gpt4Enabled.value) {
-    gpt4Enabled.value = false
-    ms.success(t('common.disabled'))
-  }
-  else {
-    gpt4Enabled.value = true
-    ms.success(t('common.enabled'))
-  }
-}
 </script>
 
 <template>
   <div class="p-4 space-y-5 min-h-[200px]">
     <div class="space-y-6">
+      <div class="flex items-center space-x-4">
+        <span class="flex-shrink-0 w-[120px]">{{ $t('setting.model') }}</span>
+        <NSelect
+          style="width: 140px"
+          :value="model"
+          :options="modelOptions"
+          @update-value="value => model = value"
+        />
+      </div>
       <div class="flex items-center space-x-4">
         <span class="flex-shrink-0 w-[120px]">{{ $t('setting.role') }}</span>
         <div class="flex-1">
@@ -75,12 +86,6 @@ function handleGPT4() {
         <span class="flex-shrink-0 w-[120px]">&nbsp;</span>
         <NButton size="small" @click="handleReset">
           {{ $t('common.reset') }}
-        </NButton>
-      </div>
-      <div class="flex items-center space-x-4">
-        <span class="flex-shrink-0 w-[120px]">GPT-4</span>
-        <NButton size="small" @click="handleGPT4">
-          {{ !gpt4Enabled ? $t('common.enable') : $t('common.disable') }}
         </NButton>
       </div>
     </div>
