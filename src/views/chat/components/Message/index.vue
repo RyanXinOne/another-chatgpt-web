@@ -41,6 +41,10 @@ const messageRef = ref<HTMLElement>()
 
 const showEdit = ref(false)
 
+const orginalContent = ref(props.text)
+
+const editedContent = ref(props.text)
+
 const options = computed(() => {
   const common = [
     {
@@ -83,7 +87,7 @@ function handleSelect(key: 'copyText' | 'delete' | 'toggleRenderType' | 'edit') 
       emit('delete')
       return
     case 'edit':
-      showEdit.value = true
+      showEdit.value = !showEdit.value
       return
   }
 }
@@ -155,6 +159,6 @@ async function handleCopy() {
     </div>
   </div>
   <div>
-    <EditDialogue :content="'Testing...'"/>
+    <EditDialogue v-if="showEdit" :content="orginalContent" @editedContent="(x) => editedContent = x" />
   </div>
 </template>
