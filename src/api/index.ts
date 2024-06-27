@@ -1,34 +1,20 @@
 import type { AxiosProgressEvent, GenericAbortSignal } from 'axios'
 import { post } from '@/utils/request'
 import { useSettingStore } from '@/store'
-
-export function fetchChatAPI<T = any>(
-  prompt: string,
-  options?: { conversationId?: string; parentMessageId?: string },
-  signal?: GenericAbortSignal,
-) {
-  return post<T>({
-    url: '/chat',
-    data: { prompt, options },
-    signal,
-  })
-}
+import type { PostMessage } from './helper'
 
 export function fetchChatAPIProcess<T = any>(
   params: {
-    prompt: string
-    options?: { conversationId?: string; parentMessageId?: string }
+    messages: [PostMessage]
     signal?: GenericAbortSignal
-    onDownloadProgress?: (progressEvent: AxiosProgressEvent) => void },
+    onDownloadProgress?: (progressEvent: AxiosProgressEvent) => void
+  },
 ) {
   const settingStore = useSettingStore()
 
   let data: Record<string, any> = {
     model: settingStore.model,
-    messages: [
-      { role: "system", content: settingStore.systemMessage },
-      { role: "user", content: params.prompt },
-    ],
+    messages: params.messages,
     temperature: settingStore.temperature,
     top_p: settingStore.top_p,
   }
