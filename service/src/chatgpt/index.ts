@@ -2,22 +2,30 @@ import * as dotenv from 'dotenv'
 import OpenAI from 'openai'
 import type { CompletionUsage } from 'openai/src/resources/completions'
 import { encoding_for_model } from 'tiktoken'
-import type { TiktokenModel } from 'tiktoken'
 import { sendResponse } from '../utils'
 import { isNotEmptyString } from '../utils/is'
-import type { Message, RequestOptions } from './types'
+import type { Message, Model, ModelContext, RequestOptions } from './types'
 
 dotenv.config({ override: true })
 
-const MAX_INPUT_TOKENS = parseInt(process.env.MAX_INPUT_TOKENS) || undefined
-const MAX_RESPONSE_TOKENS = parseInt(process.env.MAX_RESPONSE_TOKENS) || undefined
 const DEBUG_MODE = process.env.DEBUG_MODE === 'true'
 
 if (!isNotEmptyString(process.env.OPENAI_API_KEY))
   throw new Error('Missing OPENAI_API_KEY environment variable')
 
-function filterMessagesByTokenCount(messages: Message[], model: string, max_tokens?: number): { messages: Message[]; estimated_tokens: number } {
-  const encoding = encoding_for_model(model as TiktokenModel)
+const model_contexts: { [key in Model]: ModelContext } = {
+  'gpt-4o': {
+    max_context_tokens: 127000,
+    max_response_tokens: 4000,
+  },
+  'gpt-3.5-turbo': {
+    max_context_tokens: 16000,
+    max_response_tokens: 4000,
+  },
+}
+
+function filterMessagesByTokenCount(messages: Message[], model: Model, max_tokens?: number): { messages: Message[]; estimated_tokens: number } {
+  const encoding = encoding_for_model(model)
   const tokens_per_message = 3
   const count_message_token = (message: Message) => {
     let tokens = tokens_per_message
@@ -50,8 +58,9 @@ const openai = new OpenAI({
 
 export async function chatReplyProcess(options) {
   let { model, messages, temperature, top_p, callback } = options as RequestOptions
+  const { max_context_tokens, max_response_tokens } = model_contexts[model]
   let estimated_tokens: number
-  ({ messages, estimated_tokens } = filterMessagesByTokenCount(messages, model, MAX_INPUT_TOKENS))
+  ({ messages, estimated_tokens } = filterMessagesByTokenCount(messages, model, max_context_tokens - max_response_tokens))
   if (DEBUG_MODE) {
     global.console.log('-'.repeat(30))
     global.console.log(`Time: ${new Date().toISOString()}`)
@@ -66,7 +75,7 @@ export async function chatReplyProcess(options) {
     const stream = await openai.chat.completions.create({
       model,
       messages,
-      max_tokens: MAX_RESPONSE_TOKENS,
+      max_tokens: max_response_tokens,
       stream: true,
       stream_options: { include_usage: true },
       temperature,
