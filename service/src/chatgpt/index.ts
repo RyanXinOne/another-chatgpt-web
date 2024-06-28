@@ -2,6 +2,7 @@ import * as dotenv from 'dotenv'
 import OpenAI from 'openai'
 import { sendResponse } from '../utils'
 import { isNotEmptyString } from '../utils/is'
+import type { RequestOptions } from './types'
 
 dotenv.config({ override: true })
 
@@ -13,7 +14,7 @@ const openai = new OpenAI({
 })
 
 export async function chatReplyProcess(options) {
-  const { model, messages, temperature, top_p, callback } = options
+  const { model, messages, temperature, top_p, callback } = options as RequestOptions
   try {
     const stream = await openai.chat.completions.create({
       model,

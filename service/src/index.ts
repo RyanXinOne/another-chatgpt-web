@@ -2,6 +2,8 @@ import express from 'express'
 import { chatReplyProcess } from './chatgpt'
 import { auth, readAuthConfig } from './middleware/auth'
 import { logUsage } from './utils'
+import type { RequestProps } from './types'
+import type { ChatCompletionChunk } from 'openai/src/resources/chat'
 
 const app = express()
 const router = express.Router()
@@ -20,14 +22,14 @@ router.post('/chat-process', [auth], async (req, res) => {
   res.setHeader('Content-type', 'application/octet-stream')
 
   try {
-    const { model, messages, temperature, top_p } = req.body
+    const { model, messages, temperature, top_p } = req.body as RequestProps
     let firstChunk = true
     await chatReplyProcess({
       model,
       messages,
       temperature,
       top_p,
-      callback: (chunk) => {
+      callback: (chunk: ChatCompletionChunk) => {
         res.write(firstChunk ? JSON.stringify(chunk) : `\n${JSON.stringify(chunk)}`)
         firstChunk = false
       },
