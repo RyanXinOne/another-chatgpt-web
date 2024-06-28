@@ -146,6 +146,7 @@ async function onConversation() {
             if (openLongReply && data[data.length - 1].choices[0]?.finish_reason === 'length') {
               lastText = text
               messages = buildContextMessages(usingContext.value ? 0 : dataSources.value.length - 2, dataSources.value.length)
+              messages.push({ role: 'user', content: '' })
               return fetchChatAPIOnce()
             }
 
@@ -259,6 +260,7 @@ async function onRegenerate(index: number) {
             if (openLongReply && data[data.length - 1].choices[0]?.finish_reason === 'length') {
               lastText = text
               messages = buildContextMessages(usingContext.value ? 0 : index - 1, index + 1)
+              messages.push({ role: 'user', content: '' })
               return fetchChatAPIOnce()
             }
           }
