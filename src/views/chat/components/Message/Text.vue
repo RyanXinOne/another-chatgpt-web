@@ -14,7 +14,8 @@ interface Props {
   error?: boolean
   text?: string
   loading?: boolean
-  viewMode?: 'preview' | 'raw' | 'edit'
+  asRawText?: boolean
+  editing?: boolean
 }
 
 interface Emit {
@@ -61,7 +62,7 @@ const wrapClass = computed(() => {
 
 const text = computed(() => {
   const value = props.text ?? ''
-  if (props.viewMode === 'preview') {
+  if (!props.asRawText) {
     // 对数学公式进行处理，自动添加 $$ 符号
     const escapedText = escapeBrackets(escapeDollarNumber(value))
     return mdi.render(escapedText)
@@ -147,12 +148,14 @@ onUnmounted(() => {
   <div class="text-black" :class="wrapClass">
     <div ref="textRef" class="leading-relaxed break-words">
       <div v-if="!inversion">
-        <div v-if="viewMode === 'preview'" class="markdown-body" :class="{ 'markdown-body-generate': loading }" v-html="text" />
-        <div v-else-if="viewMode === 'raw'" class="whitespace-pre-wrap" v-text="text" />
+        <div v-if="!editing">
+          <div v-if="!asRawText" class="markdown-body" :class="{ 'markdown-body-generate': loading }" v-html="text" />
+          <div v-else class="whitespace-pre-wrap" v-text="text" />
+        </div>
         <textarea v-else v-model="editingText" />
       </div>
       <div v-else>
-        <div v-if="viewMode === 'raw'" class="whitespace-pre-wrap" v-text="text" />
+        <div v-if="!editing" class="whitespace-pre-wrap" v-text="text" />
         <textarea v-else v-model="editingText" />
       </div>
     </div>

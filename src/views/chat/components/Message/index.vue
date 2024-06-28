@@ -34,9 +34,11 @@ const message = useMessage()
 
 const textRef = ref<HTMLElement>()
 
-const messageRef = ref<HTMLElement>()
+const asRawText = ref(props.inversion)
 
-const viewMode = ref<"preview" | "raw" | "edit">(props.inversion ? "raw" : "preview")
+const editing = ref(false)
+
+const messageRef = ref<HTMLElement>()
 
 const options = computed(() => {
   const common = [
@@ -59,9 +61,9 @@ const options = computed(() => {
 
   if (!props.inversion) {
     common.unshift({
-      label: viewMode.value === "raw" ? t('chat.preview') : t('chat.showRawText'),
+      label: asRawText.value ? t('chat.preview') : t('chat.showRawText'),
       key: 'toggleRenderType',
-      icon: iconRender({ icon: viewMode.value === "raw" ? 'ic:outline-code-off' : 'ic:outline-code' }),
+      icon: iconRender({ icon: asRawText.value ? 'ic:outline-code-off' : 'ic:outline-code' }),
     })
   }
 
@@ -74,13 +76,13 @@ function handleSelect(key: 'copyText' | 'delete' | 'toggleRenderType' | 'edit') 
       handleCopy()
       return
     case 'toggleRenderType':
-      viewMode.value = viewMode.value === "raw" ? "preview" : "raw"
+      asRawText.value = !asRawText.value
       return
     case 'delete':
       emit('delete')
       return
     case 'edit':
-      viewMode.value = "edit"
+      editing.value = true
       return
   }
 }
@@ -127,7 +129,8 @@ async function handleCopy() {
           :error="error"
           :text="text"
           :loading="loading"
-          :view-mode="viewMode"
+          :as-raw-text="asRawText"
+          :editing="editing"
         />
         <div class="flex flex-col">
           <button
