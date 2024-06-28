@@ -139,8 +139,8 @@ onUnmounted(() => {
   <div class="text-black" :class="wrapClass">
     <div ref="textRef" class="leading-relaxed break-words">
       <div v-if="!inversion">
-        <textarea v-if="!asRawText" class="markdown-body" :class="{ 'markdown-body-generate': loading }" v-html="text" />
-        <textarea v-else class="whitespace-pre-wrap" v-text="text" />
+        <div v-if="!asRawText" class="markdown-body" :class="{ 'markdown-body-generate': loading }" v-html="text" />
+        <div v-else class="whitespace-pre-wrap" v-text="text" />
       </div>
       <div v-else class="whitespace-pre-wrap" v-text="text" />
     </div>

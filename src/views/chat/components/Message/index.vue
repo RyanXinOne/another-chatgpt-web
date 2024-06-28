@@ -8,7 +8,6 @@ import { useIconRender } from '@/hooks/useIconRender'
 import { t } from '@/locales'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { copyToClip } from '@/utils/copy'
-import EditDialogue  from './EditDialogue.vue'
 
 interface Props {
   dateTime?: string
@@ -157,8 +156,5 @@ async function handleCopy() {
         </div>
       </div>
     </div>
-  </div>
-  <div>
-    <EditDialogue v-if="showEdit" :content="orginalContent" @editedContent="(x) => editedContent = x" />
   </div>
 </template>
