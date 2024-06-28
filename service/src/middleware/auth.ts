@@ -1,7 +1,7 @@
 import fs from 'fs/promises'
 
 const auth = async (req, res, next) => {
-  const authConfig = await readAuthConfig()
+  const authConfig = await getAuthConfig()
   if (Object.keys(authConfig).length > 0) {
     try {
       const Authorization = req.header('Authorization')
@@ -21,9 +21,9 @@ const auth = async (req, res, next) => {
   }
 }
 
-async function readAuthConfig() {
+async function getAuthConfig() {
   const fileContents = await fs.readFile('auth.json', 'utf8').catch(() => '{}')
   return JSON.parse(fileContents)
 }
 
-export { auth, readAuthConfig }
+export { auth, getAuthConfig }

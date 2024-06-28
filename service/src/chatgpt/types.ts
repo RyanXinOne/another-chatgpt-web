@@ -12,6 +12,7 @@ export interface RequestOptions {
   messages: Message[]
   temperature?: number
   top_p?: number
+  user?: string
   callback: (chunk: ChatCompletionChunk) => void
 }
 

@@ -1,7 +1,6 @@
 import express from 'express'
 import { chatReplyProcess } from './chatgpt'
-import { auth, readAuthConfig } from './middleware/auth'
-import { logUsage } from './utils'
+import { auth, getAuthConfig } from './middleware/auth'
 import type { RequestProps } from './types'
 import type { ChatCompletionChunk } from 'openai/src/resources/chat'
 
@@ -23,21 +22,15 @@ router.post('/chat-process', [auth], async (req, res) => {
 
   try {
     const { model, messages, temperature, top_p } = req.body as RequestProps
+    const user = req.header('Authorization')?.replace('Bearer ', '').trim()
     let firstChunk = true
     await chatReplyProcess({
-      model,
-      messages,
-      temperature,
-      top_p,
+      model, messages, temperature, top_p, user,
       callback: (chunk: ChatCompletionChunk) => {
         res.write(firstChunk ? JSON.stringify(chunk) : `\n${JSON.stringify(chunk)}`)
         firstChunk = false
       },
     })
-    // log usage
-    const Authorization = req.header('Authorization')
-    if (Authorization)
-      await logUsage(Authorization.replace('Bearer ', '').trim())
   }
   catch (error) {
     res.write(JSON.stringify(error))
@@ -49,7 +42,7 @@ router.post('/chat-process', [auth], async (req, res) => {
 
 router.post('/session', async (req, res) => {
   try {
-    const authConfig = await readAuthConfig()
+    const authConfig = await getAuthConfig()
     const hasAuth = Object.keys(authConfig).length > 0
     res.send({ status: 'Success', message: '', data: { auth: hasAuth } })
   }
@@ -64,7 +57,7 @@ router.post('/verify', async (req, res) => {
     if (!token)
       throw new Error('Secret key is empty')
 
-    const authConfig = await readAuthConfig()
+    const authConfig = await getAuthConfig()
     if (!(token in authConfig && authConfig[token].allow))
       throw new Error('密钥无效 | Secret key is invalid')
 

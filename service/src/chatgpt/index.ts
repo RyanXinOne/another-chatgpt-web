@@ -5,6 +5,7 @@ import { encoding_for_model } from 'tiktoken'
 import { sendResponse } from '../utils'
 import { isNotEmptyString } from '../utils/is'
 import type { Message, Model, ModelContext, RequestOptions } from './types'
+import { logUsage } from '../middleware/logger'
 
 dotenv.config({ override: true })
 
@@ -13,7 +14,7 @@ const DEBUG_MODE = process.env.DEBUG_MODE === 'true'
 if (!isNotEmptyString(process.env.OPENAI_API_KEY))
   throw new Error('Missing OPENAI_API_KEY environment variable')
 
-const model_contexts: { [key in Model]: ModelContext } = {
+const model_contexts: { [model in Model]: ModelContext } = {
   'gpt-4o': {
     max_context_tokens: 127000,
     max_response_tokens: 4000,
@@ -56,8 +57,8 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-export async function chatReplyProcess(options) {
-  let { model, messages, temperature, top_p, callback } = options as RequestOptions
+export async function chatReplyProcess(options: RequestOptions) {
+  let { model, messages, temperature, top_p, user, callback } = options
   const { max_context_tokens, max_response_tokens } = model_contexts[model]
   let estimated_tokens: number
   ({ messages, estimated_tokens } = filterMessagesByTokenCount(messages, model, max_context_tokens - max_response_tokens))
@@ -70,7 +71,6 @@ export async function chatReplyProcess(options) {
     global.console.log(`Estimated tokens: ${estimated_tokens}`)
     global.console.log(`Messages: ${JSON.stringify(messages, null, 2)}`)
   }
-  let usage: CompletionUsage | undefined
   try {
     const stream = await openai.chat.completions.create({
       model,
@@ -81,6 +81,7 @@ export async function chatReplyProcess(options) {
       temperature,
       top_p,
     })
+    let usage: CompletionUsage
     for await (const chunk of stream) {
       if (chunk.usage) {
         usage = chunk.usage
@@ -91,6 +92,7 @@ export async function chatReplyProcess(options) {
     if (DEBUG_MODE) {
       global.console.log(`Usage: ${JSON.stringify(usage, null, 2)}`)
     }
+    await logUsage(model, usage, user)
     return sendResponse({ type: 'Success' })
   } catch (error: any) {
     global.console.error(error)
