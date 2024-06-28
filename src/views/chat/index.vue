@@ -12,8 +12,9 @@ import { useUsingContext } from './hooks/useUsingContext'
 import HeaderComponent from './components/Header/index.vue'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
-import { useChatStore, usePromptStore } from '@/store'
+import { useChatStore, usePromptStore, useSettingStore } from '@/store'
 import { fetchChatAPIProcess } from '@/api'
+import type { PostMessage } from '@/api/helper'
 import { t } from '@/locales'
 
 let controller = new AbortController()
@@ -25,6 +26,7 @@ const dialog = useDialog()
 const ms = useMessage()
 
 const chatStore = useChatStore()
+const settingStore = useSettingStore()
 
 const { isMobile } = useBasicLayout()
 const { addChat, updateChat, updateChatSome, getChatByUuidAndIndex } = useChat()
@@ -34,7 +36,6 @@ const { usingContext, toggleUsingContext } = useUsingContext()
 const { uuid } = route.params as { uuid: string }
 
 const dataSources = computed(() => chatStore.getChatByUuid(+uuid))
-const conversationList = computed(() => dataSources.value.filter(item => (!item.inversion && !!item.conversationOptions)))
 
 const prompt = ref<string>('')
 const loading = ref<boolean>(false)
@@ -56,10 +57,26 @@ function handleSubmit() {
   onConversation()
 }
 
+function buildContextMessages(startIndex: number, endIndex: number): [PostMessage] {
+  const messages: [PostMessage] = [{ role: 'system', content: settingStore.systemMessage }]
+  for (let i = startIndex; i < dataSources.value.length; i++) {
+    if (endIndex !== undefined && i >= endIndex)
+      break
+    const data = dataSources.value[i]
+    if (!data.error) {
+      messages.push({
+        role: data.inversion ? 'user' : 'assistant',
+        content: data.text,
+      })
+    }
+  }
+  return messages
+}
+
 async function onConversation() {
   let message = prompt.value
 
-  if (message.trim() === '/兔兔') {
+  if (message.trim() === '/\u5154\u5154') {
     window.dispatchEvent(new Event('fallings'))
     prompt.value = ''
     return
@@ -80,20 +97,14 @@ async function onConversation() {
       text: message,
       inversion: true,
       error: false,
-      conversationOptions: null,
-      requestOptions: { prompt: message, options: null },
     },
   )
   scrollToBottom()
 
+  let messages: [PostMessage] = buildContextMessages(usingContext.value ? 0 : dataSources.value.length - 1, dataSources.value.length)
+
   loading.value = true
   prompt.value = ''
-
-  let options: Chat.ConversationRequest = {}
-  const lastContext = conversationList.value[conversationList.value.length - 1]?.conversationOptions
-
-  if (lastContext && usingContext.value)
-    options = { ...lastContext }
 
   addChat(
     +uuid,
@@ -103,8 +114,6 @@ async function onConversation() {
       loading: true,
       inversion: false,
       error: false,
-      conversationOptions: null,
-      requestOptions: { prompt: message, options: { ...options } },
     },
   )
   scrollToBottom()
@@ -113,37 +122,31 @@ async function onConversation() {
     let lastText = ''
     const fetchChatAPIOnce = async () => {
       await fetchChatAPIProcess<Chat.ConversationResponse>({
-        prompt: message,
-        options,
+        messages,
         signal: controller.signal,
         onDownloadProgress: ({ event }) => {
           const xhr = event.target
           const { responseText } = xhr
-          // Always process the final line
-          const lastIndex = responseText.lastIndexOf('\n', responseText.length - 2)
-          let chunk = responseText
-          if (lastIndex !== -1)
-            chunk = responseText.substring(lastIndex)
           try {
-            const data = JSON.parse(chunk)
+            const chunks = responseText.trim().split('\n')
+            const data: Chat.ConversationResponse[] = chunks.map((chunk: string) => JSON.parse(chunk))
+            const text = lastText + data.map((response) => response.choices[0]?.delta?.content || '').join('')
             updateChat(
               +uuid,
               dataSources.value.length - 1,
               {
                 dateTime: new Date().toLocaleString(),
-                text: lastText + (data.text ?? ''),
+                text,
                 inversion: false,
                 error: false,
                 loading: true,
-                conversationOptions: { conversationId: data.conversationId, parentMessageId: data.id },
-                requestOptions: { prompt: message, options: { ...options } },
               },
             )
 
-            if (openLongReply && data.detail.choices[0].finish_reason === 'length') {
-              options.parentMessageId = data.id
-              lastText = data.text
-              message = ''
+            if (openLongReply && data[data.length - 1].choices[0]?.finish_reason === 'length') {
+              lastText = text
+              messages = buildContextMessages(usingContext.value ? 0 : dataSources.value.length - 2, dataSources.value.length)
+              messages.push({ role: 'user', content: '' })
               return fetchChatAPIOnce()
             }
 
@@ -160,8 +163,6 @@ async function onConversation() {
     await fetchChatAPIOnce()
   }
   catch (error: any) {
-    const errorMessage = error?.message ?? t('common.wrong')
-
     if (error.message === 'canceled') {
       updateChatSome(
         +uuid,
@@ -174,6 +175,8 @@ async function onConversation() {
       return
     }
 
+    const errorMessage = error?.message ?? t('common.wrong')
+
     const currentChat = getChatByUuidAndIndex(+uuid, dataSources.value.length - 1)
 
     if (currentChat?.text && currentChat.text !== '') {
@@ -182,7 +185,7 @@ async function onConversation() {
         dataSources.value.length - 1,
         {
           text: `${currentChat.text}\n[${errorMessage}]`,
-          error: false,
+          error: true,
           loading: false,
         },
       )
@@ -198,8 +201,6 @@ async function onConversation() {
         inversion: false,
         error: true,
         loading: false,
-        conversationOptions: null,
-        requestOptions: { prompt: message, options: { ...options } },
       },
     )
     scrollToBottomIfAtBottom()
@@ -215,14 +216,7 @@ async function onRegenerate(index: number) {
 
   controller = new AbortController()
 
-  const { requestOptions } = dataSources.value[index]
-
-  let message = requestOptions?.prompt ?? ''
-
-  let options: Chat.ConversationRequest = {}
-
-  if (requestOptions.options)
-    options = { ...requestOptions.options }
+  let messages: [PostMessage] = buildContextMessages(usingContext.value ? 0 : index - 1, index)
 
   loading.value = true
 
@@ -235,8 +229,6 @@ async function onRegenerate(index: number) {
       inversion: false,
       error: false,
       loading: true,
-      conversationOptions: null,
-      requestOptions: { prompt: message, options: { ...options } },
     },
   )
 
@@ -244,37 +236,31 @@ async function onRegenerate(index: number) {
     let lastText = ''
     const fetchChatAPIOnce = async () => {
       await fetchChatAPIProcess<Chat.ConversationResponse>({
-        prompt: message,
-        options,
+        messages,
         signal: controller.signal,
         onDownloadProgress: ({ event }) => {
           const xhr = event.target
           const { responseText } = xhr
-          // Always process the final line
-          const lastIndex = responseText.lastIndexOf('\n', responseText.length - 2)
-          let chunk = responseText
-          if (lastIndex !== -1)
-            chunk = responseText.substring(lastIndex)
           try {
-            const data = JSON.parse(chunk)
+            const chunks = responseText.trim().split('\n')
+            const data: Chat.ConversationResponse[] = chunks.map((chunk: string) => JSON.parse(chunk))
+            const text = lastText + data.map((response) => response.choices[0]?.delta?.content || '').join('')
             updateChat(
               +uuid,
               index,
               {
                 dateTime: new Date().toLocaleString(),
-                text: lastText + (data.text ?? ''),
+                text,
                 inversion: false,
                 error: false,
                 loading: true,
-                conversationOptions: { conversationId: data.conversationId, parentMessageId: data.id },
-                requestOptions: { prompt: message, options: { ...options } },
               },
             )
 
-            if (openLongReply && data.detail.choices[0].finish_reason === 'length') {
-              options.parentMessageId = data.id
-              lastText = data.text
-              message = ''
+            if (openLongReply && data[data.length - 1].choices[0]?.finish_reason === 'length') {
+              lastText = text
+              messages = buildContextMessages(usingContext.value ? 0 : index - 1, index + 1)
+              messages.push({ role: 'user', content: '' })
               return fetchChatAPIOnce()
             }
           }
@@ -301,6 +287,21 @@ async function onRegenerate(index: number) {
 
     const errorMessage = error?.message ?? t('common.wrong')
 
+    const currentChat = getChatByUuidAndIndex(+uuid, index)
+
+    if (currentChat?.text && currentChat.text !== '') {
+      updateChatSome(
+        +uuid,
+        index,
+        {
+          text: `${currentChat.text}\n[${errorMessage}]`,
+          error: true,
+          loading: false,
+        },
+      )
+      return
+    }
+
     updateChat(
       +uuid,
       index,
@@ -310,8 +311,6 @@ async function onRegenerate(index: number) {
         inversion: false,
         error: true,
         loading: false,
-        conversationOptions: null,
-        requestOptions: { prompt: message, options: { ...options } },
       },
     )
   }

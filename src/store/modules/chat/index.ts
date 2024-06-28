@@ -185,7 +185,7 @@ export const useChatStore = defineStore('chat-store', {
 
     clearHistory() {
       this.$state = { ...defaultState() }
-      this.recordState()
+      this.reloadRoute(this.active as number)
     },
 
     async reloadRoute(uuid?: number) {

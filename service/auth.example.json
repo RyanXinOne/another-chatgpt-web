@@ -1,0 +1,18 @@
+{
+  "user_token_1": {
+    "allow": true,
+    "info": {
+      "name": "User1",
+      "avatar": "https://user1.avatar.link/",
+      "description": "This is the first user accessing with <user_token_1>."
+    }
+  },
+  "user_token_2": {
+    "allow": false,
+    "info": {
+      "name": "User2",
+      "avatar": "https://user2.avatar.link/",
+      "description": "This is the second user who is not allowed to access."
+    }
+  }
+}

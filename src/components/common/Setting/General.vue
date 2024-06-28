@@ -72,18 +72,20 @@ function updateUserInfo(options: Partial<UserInfo>) {
 
 async function handleReset() {
   const token = authStore.token
-  if (!token)
-    return
-  try {
-    const response: any = await fetchVerify(token)
-    userStore.updateUserInfo(response.data)
-    ms.success(t('common.success'))
-    window.location.reload()
+  if (!token) {
+    userStore.resetUserInfo()
+  } else {
+    try {
+      const response: any = await fetchVerify(token)
+      userStore.updateUserInfo(response.data)
+    }
+    catch (error: any) {
+      ms.error(error.message ?? 'error')
+      authStore.removeToken()
+    }
   }
-  catch (error: any) {
-    ms.error(error.message ?? 'error')
-    authStore.removeToken()
-  }
+  ms.success(t('common.success'))
+  window.location.reload()
 }
 
 function exportData(): void {
@@ -224,7 +226,7 @@ function handleImportButtonClick(): void {
             style="width: 140px"
             :value="language"
             :options="languageOptions"
-            @update-value="value => appStore.setLanguage(value)"
+            @update-value="value => language = value"
           />
         </div>
       </div>

@@ -1,209 +1,101 @@
 import * as dotenv from 'dotenv'
-import 'isomorphic-fetch'
-import type { ChatGPTAPIOptions, ChatMessage, SendMessageOptions } from 'chatgpt'
-import { ChatGPTAPI } from 'chatgpt'
-import Keyv from 'keyv'
-import QuickLRU from 'quick-lru'
-import { SocksProxyAgent } from 'socks-proxy-agent'
-import httpsProxyAgent from 'https-proxy-agent'
-import fetch from 'node-fetch'
+import OpenAI from 'openai'
+import type { CompletionUsage } from 'openai/src/resources/completions'
+import { encoding_for_model } from 'tiktoken'
 import { sendResponse } from '../utils'
 import { isNotEmptyString } from '../utils/is'
-import type { ApiModel, ChatContext, ModelConfig } from '../types'
-import type { RequestOptions, SetProxyOptions, UsageResponse } from './types'
+import type { Message, Model, ModelContext, RequestOptions } from './types'
+import { logUsage } from '../middleware/logger'
 
-const { HttpsProxyAgent } = httpsProxyAgent
+dotenv.config({ override: true })
 
-dotenv.config()
+const DEBUG_MODE = process.env.DEBUG_MODE === 'true'
 
-const ErrorCodeMessage: Record<string, string> = {
-  401: '[OpenAI] 提供错误的API密钥 | Incorrect API key provided',
-  403: '[OpenAI] 服务器拒绝访问，请稍后再试 | Server refused to access, please try again later',
-  502: '[OpenAI] 错误的网关 |  Bad Gateway',
-  503: '[OpenAI] 服务器繁忙，请稍后再试 | Server is busy, please try again later',
-  504: '[OpenAI] 网关超时 | Gateway Time-out',
-  500: '[OpenAI] 服务器繁忙，请稍后再试 | Internal Server Error',
+if (!isNotEmptyString(process.env.OPENAI_API_KEY))
+  throw new Error('Missing OPENAI_API_KEY environment variable')
+
+const model_contexts: { [model in Model]: ModelContext } = {
+  'gpt-4o': {
+    max_context_tokens: 127000,
+    max_response_tokens: 4000,
+  },
+  'gpt-3.5-turbo': {
+    max_context_tokens: 16000,
+    max_response_tokens: 4000,
+  },
 }
 
-const timeoutMs: number = !isNaN(+process.env.TIMEOUT_MS) ? +process.env.TIMEOUT_MS : 100 * 1000
-const disableDebug: boolean = process.env.OPENAI_API_DISABLE_DEBUG === 'true'
+function filterMessagesByTokenCount(messages: Message[], model: Model, max_tokens?: number): { messages: Message[]; estimated_tokens: number } {
+  const encoding = encoding_for_model(model)
+  const tokens_per_message = 3
+  const count_message_token = (message: Message) => {
+    let tokens = tokens_per_message
+    for (const key in message) {
+      tokens += encoding.encode(message[key]).length
+    }
+    return tokens
+  }
+  let estimated_tokens = 3
 
-let apiModel: ApiModel
-
-if (!isNotEmptyString(process.env.OPENAI_API_KEY) && !isNotEmptyString(process.env.OPENAI_ACCESS_TOKEN))
-  throw new Error('Missing OPENAI_API_KEY or OPENAI_ACCESS_TOKEN environment variable')
-
-let api3: ChatGPTAPI, api4: ChatGPTAPI
-
-(async () => {
-  // More Info: https://github.com/transitive-bullshit/chatgpt-api
-
-  const OPENAI_API_BASE_URL = process.env.OPENAI_API_BASE_URL
-  const messageStore = new Keyv({ store: new QuickLRU({ maxSize: 10000 }) })
-
-  const options: ChatGPTAPIOptions = {
-    apiKey: process.env.OPENAI_API_KEY,
-    debug: !disableDebug,
-    messageStore,
+  if (messages.length > 0 && messages[0].role === 'system') {
+    estimated_tokens += count_message_token(messages[0])
   }
 
-  if (isNotEmptyString(OPENAI_API_BASE_URL)) {
-    // if find /v1 in OPENAI_API_BASE_URL then use it
-    if (OPENAI_API_BASE_URL.includes('/v1'))
-      options.apiBaseUrl = `${OPENAI_API_BASE_URL}`
-    else
-      options.apiBaseUrl = `${OPENAI_API_BASE_URL}/v1`
+  for (let i = messages.length - 1; i >= 1; i--) {
+    let curr_tokens = count_message_token(messages[i])
+    if (max_tokens && estimated_tokens + curr_tokens > max_tokens) {
+      messages.splice(1, i)
+      break
+    }
+    estimated_tokens += curr_tokens
   }
 
-  api3 = new ChatGPTAPI({
-    ...options,
-    completionParams: { model: 'gpt-3.5-turbo-0125' },
-    maxModelTokens: 16000,
-    maxResponseTokens: 4000,
-  })
+  return { messages, estimated_tokens }
+}
 
-  api4 = new ChatGPTAPI({
-    ...options,
-    completionParams: { model: 'gpt-4o-2024-05-13' },
-    maxModelTokens: 32000,
-    maxResponseTokens: 4000,
-  })
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+})
 
-  apiModel = 'ChatGPTAPI'
-})()
-
-async function chatReplyProcess(options: RequestOptions) {
-  const { message, lastContext, process, systemMessage, temperature, top_p, gpt4 } = options
+export async function chatReplyProcess(options: RequestOptions) {
+  let { model, messages, temperature, top_p, user, callback } = options
+  const { max_context_tokens, max_response_tokens } = model_contexts[model]
+  let estimated_tokens: number
+  ({ messages, estimated_tokens } = filterMessagesByTokenCount(messages, model, max_context_tokens - max_response_tokens))
+  if (DEBUG_MODE) {
+    global.console.log('-'.repeat(30))
+    global.console.log(`Time: ${new Date().toISOString()}`)
+    global.console.log(`Model: ${model}`)
+    global.console.log(`Temperature: ${temperature}`)
+    global.console.log(`Top P: ${top_p}`)
+    global.console.log(`Estimated tokens: ${estimated_tokens}`)
+    global.console.log(`Messages: ${JSON.stringify(messages, null, 2)}`)
+  }
   try {
-    let options: SendMessageOptions = { timeoutMs }
-
-    if (apiModel === 'ChatGPTAPI') {
-      if (isNotEmptyString(systemMessage))
-        options.systemMessage = systemMessage
-      options.completionParams = { temperature, top_p }
-    }
-
-    if (lastContext != null) {
-      if (apiModel === 'ChatGPTAPI')
-        options.parentMessageId = lastContext.parentMessageId
-      else
-        options = { ...lastContext }
-    }
-
-    const api = gpt4 ? api4 : api3
-    const response = await api.sendMessage(message, {
-      ...options,
-      onProgress: (partialResponse) => {
-        process?.(partialResponse)
-      },
+    const stream = await openai.chat.completions.create({
+      model,
+      messages,
+      max_tokens: max_response_tokens,
+      stream: true,
+      stream_options: { include_usage: true },
+      temperature,
+      top_p,
     })
-
-    return sendResponse({ type: 'Success', data: response })
-  }
-  catch (error: any) {
-    const code = error.statusCode
-    global.console.log(error)
-    if (Reflect.has(ErrorCodeMessage, code))
-      return sendResponse({ type: 'Fail', message: ErrorCodeMessage[code] })
-    return sendResponse({ type: 'Fail', message: error.message ?? 'Please check the back-end console' })
-  }
-}
-
-async function fetchUsage() {
-  const OPENAI_API_KEY = process.env.OPENAI_API_KEY
-  const OPENAI_API_BASE_URL = process.env.OPENAI_API_BASE_URL
-
-  if (!isNotEmptyString(OPENAI_API_KEY))
-    return Promise.resolve('-')
-
-  const API_BASE_URL = isNotEmptyString(OPENAI_API_BASE_URL)
-    ? OPENAI_API_BASE_URL
-    : 'https://api.openai.com'
-
-  const [startDate, endDate] = formatDate()
-
-  // 每月使用量
-  const urlUsage = `${API_BASE_URL}/v1/dashboard/billing/usage?start_date=${startDate}&end_date=${endDate}`
-
-  const headers = {
-    'Authorization': `Bearer ${OPENAI_API_KEY}`,
-    'Content-Type': 'application/json',
-  }
-
-  const options = {} as SetProxyOptions
-
-  setupProxy(options)
-
-  try {
-    // 获取已使用量
-    const useResponse = await options.fetch(urlUsage, { headers })
-    if (!useResponse.ok)
-      throw new Error('获取使用量失败')
-    const usageData = await useResponse.json() as UsageResponse
-    const usage = Math.round(usageData.total_usage) / 100
-    return Promise.resolve(usage ? `$${usage}` : '-')
-  }
-  catch (error) {
-    global.console.log(error)
-    return Promise.resolve('-')
-  }
-}
-
-function formatDate(): string[] {
-  const today = new Date()
-  const year = today.getFullYear()
-  const month = today.getMonth() + 1
-  const lastDay = new Date(year, month, 0)
-  const formattedFirstDay = `${year}-${month.toString().padStart(2, '0')}-01`
-  const formattedLastDay = `${year}-${month.toString().padStart(2, '0')}-${lastDay.getDate().toString().padStart(2, '0')}`
-  return [formattedFirstDay, formattedLastDay]
-}
-
-async function chatConfig() {
-  const usage = '-' ?? await fetchUsage()
-  const reverseProxy = process.env.API_REVERSE_PROXY ?? '-'
-  const httpsProxy = (process.env.HTTPS_PROXY || process.env.ALL_PROXY) ?? '-'
-  const socksProxy = (process.env.SOCKS_PROXY_HOST && process.env.SOCKS_PROXY_PORT)
-    ? (`${process.env.SOCKS_PROXY_HOST}:${process.env.SOCKS_PROXY_PORT}`)
-    : '-'
-  return sendResponse<ModelConfig>({
-    type: 'Success',
-    data: { apiModel, reverseProxy, timeoutMs, socksProxy, httpsProxy, usage },
-  })
-}
-
-function setupProxy(options: SetProxyOptions) {
-  if (isNotEmptyString(process.env.SOCKS_PROXY_HOST) && isNotEmptyString(process.env.SOCKS_PROXY_PORT)) {
-    const agent = new SocksProxyAgent({
-      hostname: process.env.SOCKS_PROXY_HOST,
-      port: process.env.SOCKS_PROXY_PORT,
-      userId: isNotEmptyString(process.env.SOCKS_PROXY_USERNAME) ? process.env.SOCKS_PROXY_USERNAME : undefined,
-      password: isNotEmptyString(process.env.SOCKS_PROXY_PASSWORD) ? process.env.SOCKS_PROXY_PASSWORD : undefined,
-    })
-    options.fetch = (url, options) => {
-      return fetch(url, { agent, ...options })
-    }
-  }
-  else if (isNotEmptyString(process.env.HTTPS_PROXY) || isNotEmptyString(process.env.ALL_PROXY)) {
-    const httpsProxy = process.env.HTTPS_PROXY || process.env.ALL_PROXY
-    if (httpsProxy) {
-      const agent = new HttpsProxyAgent(httpsProxy)
-      options.fetch = (url, options) => {
-        return fetch(url, { agent, ...options })
+    let usage: CompletionUsage
+    for await (const chunk of stream) {
+      if (chunk.usage) {
+        usage = chunk.usage
+        break
       }
+      callback(chunk)
     }
-  }
-  else {
-    options.fetch = (url, options) => {
-      return fetch(url, { ...options })
+    if (DEBUG_MODE) {
+      global.console.log(`Usage: ${JSON.stringify(usage, null, 2)}`)
     }
+    await logUsage(model, usage, user)
+    return sendResponse({ type: 'Success' })
+  } catch (error: any) {
+    global.console.error(error)
+    return sendResponse({ type: 'Fail', message: error.message })
   }
 }
-
-function currentModel(): ApiModel {
-  return apiModel
-}
-
-export type { ChatContext, ChatMessage }
-
-export { chatReplyProcess, chatConfig, currentModel }

@@ -29,7 +29,7 @@ export interface AppState {
 }
 
 export function defaultSetting(): AppState {
-  const language = languageMap[navigator.language]
+  const language = languageMap[navigator.language] ?? 'en-US'
   return { siderCollapsed: false, theme: 'light', language }
 }
 

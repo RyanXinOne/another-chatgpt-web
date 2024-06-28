@@ -1,51 +1,22 @@
-import { ref } from 'vue'
 import type { AxiosProgressEvent, GenericAbortSignal } from 'axios'
 import { post } from '@/utils/request'
-import { useAuthStore, useSettingStore } from '@/store'
-
-export const gpt4Enabled = ref<boolean>(true)
-
-export function fetchChatAPI<T = any>(
-  prompt: string,
-  options?: { conversationId?: string; parentMessageId?: string },
-  signal?: GenericAbortSignal,
-) {
-  return post<T>({
-    url: '/chat',
-    data: { prompt, options },
-    signal,
-  })
-}
-
-export function fetchChatConfig<T = any>() {
-  return post<T>({
-    url: '/config',
-  })
-}
+import { useSettingStore } from '@/store'
+import type { PostMessage } from './helper'
 
 export function fetchChatAPIProcess<T = any>(
   params: {
-    prompt: string
-    options?: { conversationId?: string; parentMessageId?: string }
+    messages: [PostMessage]
     signal?: GenericAbortSignal
-    onDownloadProgress?: (progressEvent: AxiosProgressEvent) => void },
+    onDownloadProgress?: (progressEvent: AxiosProgressEvent) => void
+  },
 ) {
   const settingStore = useSettingStore()
-  const authStore = useAuthStore()
 
   let data: Record<string, any> = {
-    prompt: params.prompt,
-    options: params.options,
-  }
-
-  if (authStore.isChatGPTAPI) {
-    data = {
-      ...data,
-      systemMessage: settingStore.systemMessage,
-      temperature: settingStore.temperature,
-      top_p: settingStore.top_p,
-      enableGPT4: gpt4Enabled.value,
-    }
+    model: settingStore.model,
+    messages: params.messages,
+    temperature: settingStore.temperature,
+    top_p: settingStore.top_p,
   }
 
   return post<T>({

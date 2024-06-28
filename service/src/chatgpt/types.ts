@@ -1,20 +1,22 @@
-import type { ChatMessage } from 'chatgpt'
-import type fetch from 'node-fetch'
+import type { ChatCompletionChunk } from 'openai/src/resources/chat'
+
+export type Model = 'gpt-4o' | 'gpt-3.5-turbo'
+
+export interface Message {
+  role: 'system' | 'user' | 'assistant'
+  content: string
+}
 
 export interface RequestOptions {
-  message: string
-  lastContext?: { conversationId?: string; parentMessageId?: string }
-  process?: (chat: ChatMessage) => void
-  systemMessage?: string
+  model: Model
+  messages: Message[]
   temperature?: number
   top_p?: number
-  gpt4?: boolean
+  user?: string
+  callback: (chunk: ChatCompletionChunk) => void
 }
 
-export interface SetProxyOptions {
-  fetch?: typeof fetch
-}
-
-export interface UsageResponse {
-  total_usage: number
+export interface ModelContext {
+  max_context_tokens: number
+  max_response_tokens: number
 }
