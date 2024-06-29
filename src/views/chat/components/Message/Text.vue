@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, onUnmounted, onUpdated, ref } from 'vue'
+import { NInput } from 'naive-ui'
 import MarkdownIt from 'markdown-it'
 import MdKatex from '@vscode/markdown-it-katex'
 import MdLinkAttributes from 'markdown-it-link-attributes'
@@ -147,17 +148,14 @@ onUnmounted(() => {
 <template>
   <div class="text-black" :class="wrapClass">
     <div ref="textRef" class="leading-relaxed break-words">
-      <div v-if="!inversion">
-        <div v-if="!editing">
+      <div v-if="!editing">
+        <div v-if="!inversion">
           <div v-if="!asRawText" class="markdown-body" :class="{ 'markdown-body-generate': loading }" v-html="text" />
           <div v-else class="whitespace-pre-wrap" v-text="text" />
         </div>
-        <textarea v-else v-model="editingText" />
+        <div v-else class="whitespace-pre-wrap" v-text="text" />
       </div>
-      <div v-else>
-        <div v-if="!editing" class="whitespace-pre-wrap" v-text="text" />
-        <textarea v-else v-model="editingText" />
-      </div>
+      <NInput v-else class="editing-box" v-model:value="editingText" type="textarea" :autosize="{ minRows: 1 }" />
     </div>
   </div>
 </template>
