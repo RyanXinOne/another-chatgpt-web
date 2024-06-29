@@ -19,9 +19,6 @@ import pkg from '../../../../package.json'
         </a>
         {{ $t("setting.freeMIT") }}
       </p>
-      <p>
-        {{ $t("setting.stars") }}
-      </p>
     </div>
   </div>
 </template>
