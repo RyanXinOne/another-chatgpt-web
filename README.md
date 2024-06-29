@@ -1,14 +1,12 @@
 # Another ChatGPT Web
 
 <p align="center">
-  <img alt="icon" src="./public/icon-144-144.png">
+  <img alt="icon" src="./public/icon-96-96.png">
 </p>
 
 ## Introduction
 
-This project is developed from the source project [chatgpt-web](https://github.com/Chanzhaoyu/chatgpt-web) with backend refactored from [chatgpt-api](https://github.com/transitive-bullshit/agentic/tree/chatgpt-api) to official [openai-node](https://github.com/openai/openai-node) API, providing much flexibility and extensibility. More frontend features like message editing is adding as well.
-
-To maintain simplicity, this project only keeps manual deployment. You could add other packing methods from the source repo.
+This project is developed from the source project [chatgpt-web](https://github.com/Chanzhaoyu/chatgpt-web) with backend refactored from [chatgpt-api](https://github.com/transitive-bullshit/agentic/tree/chatgpt-api) which has been out-of-maintenance to official [openai-node](https://github.com/openai/openai-node) API with much flexibility and extensibility.
 
 ## New Features
 
@@ -22,11 +20,11 @@ This project has the following new features standing on the source project [chat
 
 [✓] Full session history control
 
-[✓] Multi-user authentication and profiles
-
 ### Backend
 
 [✓] Built with official [openai-node](https://github.com/openai/openai-node) API
+
+[✓] Multi-user authentication and profiles
 
 [✓] Model-wise token usage statistics logging for users
 
@@ -135,6 +133,20 @@ User usage logs would be generated automatically under `service/logs/`, for exam
 }
 ```
 
+## FAQ
+
+Q: Does it support unofficial proxy API like in source project?
+
+A: No. It removes proxy support with official API.
+
+Q: Can I migrate my chat history from the source project?
+
+A: Yes. The data store is fully compatible with the source project, and you can safely import your old chat histories.
+
+Q: Does it support other packaging methods like docker container?
+
+A: To maintain simplicity, this project only keeps manual deployment. You could apply other packaging methods from the source repo.
+
 ## Contributing
 
 Thanks to everyone who has contributed!
@@ -145,7 +157,7 @@ Thanks to everyone who has contributed!
 
 ## Acknowledgements
 
-Thanks to [ChenZhaoYu](https://github.com/Chanzhaoyu) for contributing to the source project [chatgpt-web](https://github.com/Chanzhaoyu/chatgpt-web).
+Thanks to [@ChenZhaoYu](https://github.com/Chanzhaoyu) for contributing to the source project [chatgpt-web](https://github.com/Chanzhaoyu/chatgpt-web).
 
 ## License
-MIT © [RyanXinOne]
+[MIT © [ChenZhaoYu, RyanXinOne]](./LICENSE)
