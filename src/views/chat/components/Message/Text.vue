@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, onUpdated, ref } from 'vue'
+import { computed, onMounted, onUnmounted, onUpdated, ref, watch } from 'vue'
 import { NInput } from 'naive-ui'
 import MarkdownIt from 'markdown-it'
 import MdKatex from '@vscode/markdown-it-katex'
@@ -20,14 +20,14 @@ interface Props {
 }
 
 interface Emit {
-  (ev: 'textEdited'): void
+  (ev: 'textEdited', text: string): void
 }
 
 const props = defineProps<Props>()
 
 const emit = defineEmits<Emit>()
 
-const editingText = ref<string>(props.text ?? '')
+const editingText = ref('')
 
 const { isMobile } = useBasicLayout()
 
@@ -69,6 +69,13 @@ const text = computed(() => {
     return mdi.render(escapedText)
   }
   return value
+})
+
+watch(() => props.editing, () => {
+  if (props.editing) {
+    editingText.value = props.text ?? ''
+    emit('textEdited', editingText.value)
+  }
 })
 
 function highlightBlock(str: string, lang?: string) {
@@ -155,7 +162,7 @@ onUnmounted(() => {
         </div>
         <div v-else class="whitespace-pre-wrap" v-text="text" />
       </div>
-      <NInput v-else class="editing-box" v-model:value="editingText" type="textarea" :autosize="{ minRows: 1 }" />
+      <NInput v-else class="editing-box" v-model:value="editingText" @input="emit('textEdited', editingText)" type="textarea" :autosize="{ minRows: 1 }" />
     </div>
   </div>
 </template>

@@ -8,6 +8,7 @@ import { useIconRender } from '@/hooks/useIconRender'
 import { t } from '@/locales'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { copyToClip } from '@/utils/copy'
+import { useChat } from '../../hooks/useChat'
 
 interface Props {
   dateTime?: string
@@ -15,12 +16,16 @@ interface Props {
   inversion?: boolean
   error?: boolean
   loading?: boolean
+  uuid: number
+  index: number
 }
 
 interface Emit {
   (ev: 'regenerate'): void
   (ev: 'delete'): void
 }
+
+const { updateChatSome } = useChat()
 
 const props = defineProps<Props>()
 
@@ -37,6 +42,8 @@ const textRef = ref<HTMLElement>()
 const asRawText = ref(props.inversion)
 
 const editing = ref(false)
+
+const editingText = ref('')
 
 const messageRef = ref<HTMLElement>()
 
@@ -101,6 +108,15 @@ async function handleCopy() {
     message.error(t('chat.copyFailed'))
   }
 }
+
+function saveEditing() {
+  updateChatSome(props.uuid, props.index, { text: editingText.value })
+  editing.value = false
+}
+
+function cancelEditing() {
+  editing.value = false
+}
 </script>
 
 <template>
@@ -131,6 +147,7 @@ async function handleCopy() {
           :loading="loading"
           :as-raw-text="asRawText"
           :editing="editing"
+          @textEdited="(text) => editingText = text"
         />
         <div v-if="!editing" class="flex flex-col">
           <button
@@ -152,11 +169,11 @@ async function handleCopy() {
           </NDropdown>
         </div>
         <div v-else class="flex flex-col">
-          <button @click="editing = false" class="transition text-green-300 hover:text-green-500">
-            <SvgIcon icon="ri:check-line" />
-          </button>          
-          <button @click="editing = false" class="transition text-red-300 hover:text-red-500">
+          <button class="mb-5 transition text-red-300 hover:text-red-500" @click="cancelEditing">
             <SvgIcon icon="ri:close-line" />
+          </button>
+          <button class="mb-0.5 transition text-green-300 hover:text-green-500" @click="saveEditing">
+            <SvgIcon icon="ri:check-line" />
           </button>
         </div>
       </div>
