@@ -8,6 +8,7 @@ import { useIconRender } from '@/hooks/useIconRender'
 import { t } from '@/locales'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { copyToClip } from '@/utils/copy'
+import { useChat } from '../../hooks/useChat'
 
 interface Props {
   dateTime?: string
@@ -15,12 +16,16 @@ interface Props {
   inversion?: boolean
   error?: boolean
   loading?: boolean
+  uuid: number
+  index: number
 }
 
 interface Emit {
   (ev: 'regenerate'): void
   (ev: 'delete'): void
 }
+
+const { updateChatSome } = useChat()
 
 const props = defineProps<Props>()
 
@@ -36,6 +41,10 @@ const textRef = ref<HTMLElement>()
 
 const asRawText = ref(props.inversion)
 
+const editing = ref(false)
+
+const editingText = ref('')
+
 const messageRef = ref<HTMLElement>()
 
 const options = computed(() => {
@@ -44,6 +53,11 @@ const options = computed(() => {
       label: t('chat.copy'),
       key: 'copyText',
       icon: iconRender({ icon: 'ri:file-copy-2-line' }),
+    },
+    {
+      label: t('common.edit'),
+      key: 'edit',
+      icon: iconRender({ icon: 'ri:edit-line' }),
     },
     {
       label: t('common.delete'),
@@ -63,7 +77,7 @@ const options = computed(() => {
   return common
 })
 
-function handleSelect(key: 'copyText' | 'delete' | 'toggleRenderType') {
+function handleSelect(key: 'copyText' | 'delete' | 'toggleRenderType' | 'edit') {
   switch (key) {
     case 'copyText':
       handleCopy()
@@ -73,6 +87,10 @@ function handleSelect(key: 'copyText' | 'delete' | 'toggleRenderType') {
       return
     case 'delete':
       emit('delete')
+      return
+    case 'edit':
+      editing.value = true
+      return
   }
 }
 
@@ -89,6 +107,15 @@ async function handleCopy() {
   catch {
     message.error(t('chat.copyFailed'))
   }
+}
+
+function saveEditing() {
+  updateChatSome(props.uuid, props.index, { text: editingText.value })
+  editing.value = false
+}
+
+function cancelEditing() {
+  editing.value = false
 }
 </script>
 
@@ -119,8 +146,10 @@ async function handleCopy() {
           :text="text"
           :loading="loading"
           :as-raw-text="asRawText"
+          :editing="editing"
+          @textEdited="(text) => editingText = text"
         />
-        <div class="flex flex-col">
+        <div v-if="!editing" class="flex flex-col">
           <button
             v-if="!inversion"
             class="mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
@@ -138,6 +167,14 @@ async function handleCopy() {
               <SvgIcon icon="ri:more-2-fill" />
             </button>
           </NDropdown>
+        </div>
+        <div v-else class="flex flex-col">
+          <button class="mb-5 transition text-red-300 hover:text-red-500" @click="cancelEditing">
+            <SvgIcon icon="ri:close-line" />
+          </button>
+          <button class="mb-0.5 transition text-green-300 hover:text-green-500" @click="saveEditing">
+            <SvgIcon icon="ri:check-line" />
+          </button>
         </div>
       </div>
     </div>

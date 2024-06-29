@@ -495,6 +495,8 @@ onUnmounted(() => {
                   :inversion="item.inversion"
                   :error="item.error"
                   :loading="item.loading"
+                  :uuid="+uuid"
+                  :index="index"
                   @regenerate="onRegenerate(index)"
                   @delete="handleDelete(index)"
                 />

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, onUpdated, ref } from 'vue'
+import { computed, onMounted, onUnmounted, onUpdated, ref, watch } from 'vue'
+import { NInput } from 'naive-ui'
 import MarkdownIt from 'markdown-it'
 import MdKatex from '@vscode/markdown-it-katex'
 import MdLinkAttributes from 'markdown-it-link-attributes'
@@ -15,9 +16,18 @@ interface Props {
   text?: string
   loading?: boolean
   asRawText?: boolean
+  editing?: boolean
+}
+
+interface Emit {
+  (ev: 'textEdited', text: string): void
 }
 
 const props = defineProps<Props>()
+
+const emit = defineEmits<Emit>()
+
+const editingText = ref('')
 
 const { isMobile } = useBasicLayout()
 
@@ -59,6 +69,13 @@ const text = computed(() => {
     return mdi.render(escapedText)
   }
   return value
+})
+
+watch(() => props.editing, () => {
+  if (props.editing) {
+    editingText.value = props.text ?? ''
+    emit('textEdited', editingText.value)
+  }
 })
 
 function highlightBlock(str: string, lang?: string) {
@@ -138,11 +155,14 @@ onUnmounted(() => {
 <template>
   <div class="text-black" :class="wrapClass">
     <div ref="textRef" class="leading-relaxed break-words">
-      <div v-if="!inversion">
-        <div v-if="!asRawText" class="markdown-body" :class="{ 'markdown-body-generate': loading }" v-html="text" />
+      <div v-if="!editing">
+        <div v-if="!inversion">
+          <div v-if="!asRawText" class="markdown-body" :class="{ 'markdown-body-generate': loading }" v-html="text" />
+          <div v-else class="whitespace-pre-wrap" v-text="text" />
+        </div>
         <div v-else class="whitespace-pre-wrap" v-text="text" />
       </div>
-      <div v-else class="whitespace-pre-wrap" v-text="text" />
+      <NInput v-else class="editing-box" v-model:value="editingText" @input="emit('textEdited', editingText)" type="textarea" :autosize="{ minRows: 1 }" />
     </div>
   </div>
 </template>
