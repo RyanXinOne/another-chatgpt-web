@@ -149,7 +149,7 @@ A: To maintain simplicity, this project only keeps manual deployment. You could 
 
 ## Contributing
 
-Thanks to everyone who has contributed!
+Thanks to everyone who has contributed! Especially [@Gnefil](https://github.com/Gnefil) who learnt a lot during the project development =D.
 
 <a href="https://github.com/RyanXinOne/another-chatgpt-web/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=RyanXinOne/another-chatgpt-web" />
