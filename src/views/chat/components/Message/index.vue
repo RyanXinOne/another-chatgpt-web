@@ -132,7 +132,7 @@ async function handleCopy() {
           :as-raw-text="asRawText"
           :editing="editing"
         />
-        <div class="flex flex-col">
+        <div v-if="!editing" class="flex flex-col">
           <button
             v-if="!inversion"
             class="mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
@@ -150,6 +150,14 @@ async function handleCopy() {
               <SvgIcon icon="ri:more-2-fill" />
             </button>
           </NDropdown>
+        </div>
+        <div v-else class="flex flex-col">
+          <button @click="editing = false" class="transition text-green-300 hover:text-green-500">
+            <SvgIcon icon="ri:check-line" />
+          </button>          
+          <button @click="editing = false" class="transition text-red-300 hover:text-red-500">
+            <SvgIcon icon="ri:close-line" />
+          </button>
         </div>
       </div>
     </div>
