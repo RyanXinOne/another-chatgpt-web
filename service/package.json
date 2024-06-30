@@ -5,20 +5,19 @@
   "description": "Another ChatGPT Web Service",
   "author": "Flat 2",
   "keywords": [
-    "chatgpt-web",
     "chatgpt",
-    "chatbot",
+    "openai-node",
     "express"
   ],
   "engines": {
-    "node": "^16 || ^18 || ^20"
+    "node": "^18 || ^20"
   },
   "scripts": {
     "start": "esno ./src/index.ts",
     "dev": "esno watch ./src/index.ts",
     "prod": "node ./build/index.mjs",
     "build": "pnpm clean && tsup",
-    "clean": "rimraf build && rimraf public",
+    "clean": "rimraf build",
     "common:cleanup": "rimraf node_modules && rimraf pnpm-lock.yaml"
   },
   "dependencies": {

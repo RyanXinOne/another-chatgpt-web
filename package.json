@@ -5,17 +5,16 @@
   "description": "Another ChatGPT Web",
   "author": "Flat 2",
   "keywords": [
-    "chatgpt-web",
     "chatgpt",
-    "chatbot",
-    "vue"
+    "vue3"
   ],
   "scripts": {
     "dev": "vite",
     "build": "run-p type-check build-only",
-    "preview": "vite preview",
     "build-only": "vite build --outDir service/public",
     "type-check": "vue-tsc --noEmit",
+    "preview": "vite preview --outDir service/public",
+    "clean": "rimraf service/public",
     "common:cleanup": "rimraf node_modules && rimraf pnpm-lock.yaml"
   },
   "dependencies": {
@@ -34,7 +33,6 @@
   },
   "devDependencies": {
     "@iconify/vue": "^4.1.0",
-    "@types/crypto-js": "^4.1.1",
     "@types/katex": "^0.16.0",
     "@types/markdown-it": "^12.2.3",
     "@types/markdown-it-link-attributes": "^3.0.1",
@@ -42,7 +40,6 @@
     "@vitejs/plugin-vue": "^4.0.0",
     "autoprefixer": "^10.4.13",
     "axios": "^1.3.4",
-    "crypto-js": "^4.1.1",
     "less": "^4.1.3",
     "markdown-it-link-attributes": "^4.0.1",
     "npm-run-all": "^4.1.5",
