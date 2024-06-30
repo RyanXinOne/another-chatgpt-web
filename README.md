@@ -8,6 +8,8 @@
 
 This project is developed from the source project [chatgpt-web](https://github.com/Chanzhaoyu/chatgpt-web) with backend refactored from [chatgpt-api](https://github.com/transitive-bullshit/agentic/tree/chatgpt-api) which has been out-of-maintenance to official [openai-node](https://github.com/openai/openai-node) API with much flexibility and extensibility.
 
+![preview](./docs/preview.png)
+
 ## New Features
 
 This project has the following new features standing on the source project [chatgpt-web](https://github.com/Chanzhaoyu/chatgpt-web).
