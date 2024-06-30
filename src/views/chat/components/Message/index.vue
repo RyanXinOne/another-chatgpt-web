@@ -110,7 +110,7 @@ async function handleCopy() {
 }
 
 function saveEditing() {
-  updateChatSome(props.uuid, props.index, { text: editingText.value })
+  updateChatSome(props.uuid, props.index, { dateTime: new Date().toLocaleString(), text: editingText.value })
   editing.value = false
 }
 
