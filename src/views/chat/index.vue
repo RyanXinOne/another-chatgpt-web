@@ -98,6 +98,7 @@ async function onConversation() {
       inversion: true,
       error: false,
     },
+    usingContext.value
   )
   scrollToBottom()
 
@@ -115,6 +116,7 @@ async function onConversation() {
       inversion: false,
       error: false,
     },
+    usingContext.value
   )
   scrollToBottom()
 

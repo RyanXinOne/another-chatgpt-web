@@ -23,44 +23,20 @@ export const useChatStore = defineStore('chat-store', {
     },
 
     getUsingContextByCurrentActive(state: Chat.ChatState) {
-      const index = state.history.findIndex(item => item.uuid === state.active)
+      const index = state.chat.findIndex(item => item.uuid === state.active)
       if (index !== -1)
-        return state.usingContext[index]
-      return false
-    },
+        return state.chat[index].usingContext
+      return true
+    }
 
-    // getUsingContextByUuid(state: Chat.ChatState) {
-    //   return (uuid: number) => {
-    //     const index = state.history.findIndex(item => item.uuid === uuid)
-    //     if (index !== -1)
-    //       return state.usingContext[index]
-    //     return false
-    //   }
-    // }
   },
 
   actions: {
-    // updateUsingContextByUuid(uuid: number, usingContext: boolean) {
-    //   const index = this.history.findIndex(item => item.uuid === uuid)
-    //   if (index !== -1) {
-    //     this.usingContext[index] = usingContext
-    //     this.recordState()
-    //   }
-    // },
 
-    updateUsingContextByCurrentActive(usingContext: boolean) {
-      const index = this.history.findIndex(item => item.uuid === this.active)
-      if (index !== -1) {
-        this.usingContext[index] = usingContext
-        this.recordState()
-      }
-    },
-
-    addHistory(history: Chat.History, chatData: Chat.Chat[] = []) {
+    addHistory(history: Chat.History, chatData: Chat.Chat[] = [], usingContext = true) {
       this.history.unshift(history)
-      this.chat.unshift({ uuid: history.uuid, data: chatData })
+      this.chat.unshift({ uuid: history.uuid, data: chatData, usingContext: usingContext})
       this.active = history.uuid
-      this.usingContext.unshift(true)
       this.reloadRoute(history.uuid)
     },
 
@@ -109,6 +85,14 @@ export const useChatStore = defineStore('chat-store', {
       return await this.reloadRoute(uuid)
     },
 
+    updateUsingContextByCurrentActive(usingContext: boolean) {
+      const index = this.chat.findIndex(item => item.uuid === this.active)
+      if (index !== -1) {
+        this.chat[index].usingContext = usingContext
+        this.recordState()
+      }
+    },
+
     getChatByUuidAndIndex(uuid: number, index: number) {
       if (!uuid || uuid === 0) {
         if (this.chat.length)
@@ -121,12 +105,12 @@ export const useChatStore = defineStore('chat-store', {
       return null
     },
 
-    addChatByUuid(uuid: number, chat: Chat.Chat) {
+    addChatByUuid(uuid: number, chat: Chat.Chat, usingContext: boolean) {
       if (!uuid || uuid === 0) {
         if (this.history.length === 0) {
           const uuid = Date.now()
           this.history.push({ uuid, title: chat.text, isEdit: false })
-          this.chat.push({ uuid, data: [chat] })
+          this.chat.push({ uuid, data: [chat], usingContext })
           this.active = uuid
           this.recordState()
         }
