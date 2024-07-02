@@ -21,12 +21,39 @@ export const useChatStore = defineStore('chat-store', {
         return state.chat.find(item => item.uuid === state.active)?.data ?? []
       }
     },
+
+    getUsingContextByCurrentActive(state: Chat.ChatState) {
+      const index = state.history.findIndex(item => item.uuid === state.active)
+      if (index !== -1)
+        return state.usingContext[index]
+      return false
+    },
+
+    // getUsingContextByUuid(state: Chat.ChatState) {
+    //   return (uuid: number) => {
+    //     const index = state.history.findIndex(item => item.uuid === uuid)
+    //     if (index !== -1)
+    //       return state.usingContext[index]
+    //     return false
+    //   }
+    // }
   },
 
   actions: {
-    setUsingContext(context: boolean) {
-      this.usingContext = context
-      this.recordState()
+    // updateUsingContextByUuid(uuid: number, usingContext: boolean) {
+    //   const index = this.history.findIndex(item => item.uuid === uuid)
+    //   if (index !== -1) {
+    //     this.usingContext[index] = usingContext
+    //     this.recordState()
+    //   }
+    // },
+
+    updateUsingContextByCurrentActive(usingContext: boolean) {
+      const index = this.history.findIndex(item => item.uuid === this.active)
+      if (index !== -1) {
+        this.usingContext[index] = usingContext
+        this.recordState()
+      }
     },
 
     addHistory(history: Chat.History, chatData: Chat.Chat[] = []) {
