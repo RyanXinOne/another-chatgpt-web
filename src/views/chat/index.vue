@@ -5,7 +5,7 @@ import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { NAutoComplete, NButton, NInput, useDialog, useMessage } from 'naive-ui'
 import { toPng } from 'html-to-image'
-import { get_encoding } from 'tiktoken'
+import { getEncoding } from 'js-tiktoken'
 import { Message } from './components'
 import { useScroll } from './hooks/useScroll'
 import { useChat } from './hooks/useChat'
@@ -62,7 +62,7 @@ function buildContextMessages(startIndex: number, endIndex: number, maxTokens: n
   startIndex = Math.max(0, startIndex)
   endIndex = Math.min(dataSources.value.length, endIndex)
 
-  const encoding = get_encoding('cl100k_base')
+  const encoding = getEncoding('cl100k_base')
   const tokens_per_message = 3
   const count_message_token = (message: PostMessage) => {
     let tokens = tokens_per_message
