@@ -5,6 +5,7 @@ import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { NAutoComplete, NButton, NInput, useDialog, useMessage } from 'naive-ui'
 import { toPng } from 'html-to-image'
+import { get_encoding } from 'tiktoken'
 import { Message } from './components'
 import { useScroll } from './hooks/useScroll'
 import { useChat } from './hooks/useChat'
@@ -57,20 +58,40 @@ function handleSubmit() {
   onConversation()
 }
 
-function buildContextMessages(startIndex: number, endIndex: number): [PostMessage] {
-  const messages: [PostMessage] = [{ role: 'system', content: settingStore.systemMessage }]
-  for (let i = startIndex; i < dataSources.value.length; i++) {
-    if (endIndex !== undefined && i >= endIndex)
-      break
-    const data = dataSources.value[i]
-    if (!data.error) {
-      messages.push({
-        role: data.inversion ? 'user' : 'assistant',
-        content: data.text,
-      })
+function buildContextMessages(startIndex: number, endIndex: number, maxTokens: number = 128000): [PostMessage] {
+  startIndex = Math.max(0, startIndex)
+  endIndex = Math.min(dataSources.value.length, endIndex)
+
+  const encoding = get_encoding('cl100k_base')
+  const tokens_per_message = 3
+  const count_message_token = (message: PostMessage) => {
+    let tokens = tokens_per_message
+    tokens += encoding.encode(message.role).length
+    tokens += encoding.encode(message.content).length
+    return tokens
+  }
+  let estimated_tokens = 3
+
+  const systemMessage: PostMessage = { role: 'system', content: settingStore.systemMessage }
+  estimated_tokens += count_message_token(systemMessage)
+
+  const messages: PostMessage[] = []
+  for (let i = endIndex - 1; i >= startIndex; i--) {
+    const item = dataSources.value[i]
+    if (!item.error) {
+      const message: PostMessage = {
+        role: item.inversion ? 'user' : 'assistant',
+        content: item.text,
+      }
+      estimated_tokens += count_message_token(message)
+      if (estimated_tokens > maxTokens)
+        break
+      messages.push(message)
     }
   }
-  return messages
+  messages.push(systemMessage)
+  messages.reverse()
+  return messages as [PostMessage]
 }
 
 async function onConversation() {

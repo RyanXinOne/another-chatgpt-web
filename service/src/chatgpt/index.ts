@@ -30,9 +30,8 @@ function filterMessagesByTokenCount(messages: Message[], model: Model, max_token
   const tokens_per_message = 3
   const count_message_token = (message: Message) => {
     let tokens = tokens_per_message
-    for (const key in message) {
-      tokens += encoding.encode(message[key]).length
-    }
+    tokens += encoding.encode(message.role).length
+    tokens += encoding.encode(message.content).length
     return tokens
   }
   let estimated_tokens = 3
