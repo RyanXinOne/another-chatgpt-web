@@ -21,17 +21,17 @@ export const useChatStore = defineStore('chat-store', {
         return state.chat.find(item => item.uuid === state.active)?.data ?? []
       }
     },
+
+    getUsingContextByCurrentActive(state: Chat.ChatState) {
+      const index = state.chat.findIndex(item => item.uuid === state.active)
+      return index > -1 ? (state.chat[index].usingContext ?? true) : true
+    }
   },
 
   actions: {
-    setUsingContext(context: boolean) {
-      this.usingContext = context
-      this.recordState()
-    },
-
     addHistory(history: Chat.History, chatData: Chat.Chat[] = []) {
       this.history.unshift(history)
-      this.chat.unshift({ uuid: history.uuid, data: chatData })
+      this.chat.unshift({ uuid: history.uuid, data: chatData, usingContext: true })
       this.active = history.uuid
       this.reloadRoute(history.uuid)
     },
@@ -81,6 +81,14 @@ export const useChatStore = defineStore('chat-store', {
       return await this.reloadRoute(uuid)
     },
 
+    toggleUsingContextByCurrentActive() {
+      const index = this.chat.findIndex(item => item.uuid === this.active)
+      if (index !== -1) {
+        this.chat[index].usingContext = !(this.chat[index].usingContext ?? true)
+        this.recordState()
+      }
+    },
+
     getChatByUuidAndIndex(uuid: number, index: number) {
       if (!uuid || uuid === 0) {
         if (this.chat.length)
@@ -98,7 +106,7 @@ export const useChatStore = defineStore('chat-store', {
         if (this.history.length === 0) {
           const uuid = Date.now()
           this.history.push({ uuid, title: chat.text, isEdit: false })
-          this.chat.push({ uuid, data: [chat] })
+          this.chat.push({ uuid, data: [chat], usingContext: true })
           this.active = uuid
           this.recordState()
         }
