@@ -9,7 +9,7 @@ export function useUsingContext() {
   const usingContext = computed<boolean>(() => chatStore.getUsingContextByCurrentActive)
 
   function toggleUsingContext() {
-    chatStore.updateUsingContextByCurrentActive(!usingContext.value)
+    chatStore.toggleUsingContextByCurrentActive()
     if (usingContext.value)
       ms.success(t('chat.turnOnContext'))
     else

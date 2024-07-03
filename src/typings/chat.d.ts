@@ -3,7 +3,7 @@ declare namespace Chat {
 	interface ChatState {
 		active: number | null
 		history: History[]
-		chat: { uuid: number; data: Chat[], usingContext: boolean }[]
+		chat: { uuid: number; data: Chat[], usingContext?: boolean }[]
 	}
 
 	interface Chat {
