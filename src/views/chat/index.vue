@@ -234,6 +234,9 @@ async function onConversation() {
 async function onRegenerate(index: number) {
   if (loading.value)
     return
+  // previous message must be user's
+  if (!dataSources.value[index - 1]?.inversion)
+    return
 
   controller = new AbortController()
 
