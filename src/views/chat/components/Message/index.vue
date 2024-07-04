@@ -8,7 +8,7 @@ import { useIconRender } from '@/hooks/useIconRender'
 import { t } from '@/locales'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { copyToClip } from '@/utils/copy'
-import { useChat } from '../../hooks/useChat'
+import { useChatStore } from '@/store'
 
 interface Props {
   dateTime?: string
@@ -16,7 +16,7 @@ interface Props {
   inversion?: boolean
   error?: boolean
   loading?: boolean
-  uuid: number
+  uuid: number | null
   index: number
 }
 
@@ -25,11 +25,11 @@ interface Emit {
   (ev: 'delete'): void
 }
 
-const { updateChatSome } = useChat()
-
 const props = defineProps<Props>()
 
 const emit = defineEmits<Emit>()
+
+const chatStore = useChatStore()
 
 const { isMobile } = useBasicLayout()
 
@@ -110,7 +110,7 @@ async function handleCopy() {
 }
 
 function saveEditing() {
-  updateChatSome(props.uuid, props.index, { dateTime: new Date().toLocaleString(), text: editingText.value })
+  chatStore.updateChatMessage(props.uuid, props.index, { dateTime: new Date().toLocaleString(), text: editingText.value })
   editing.value = false
 }
 

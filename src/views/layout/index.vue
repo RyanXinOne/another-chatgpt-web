@@ -1,18 +1,15 @@
 <script setup lang='ts'>
 import { computed } from 'vue'
 import { NLayout, NLayoutContent } from 'naive-ui'
-import { useRouter } from 'vue-router'
 import Sider from './sider/index.vue'
 import Permission from './Permission.vue'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
-import { useAppStore, useAuthStore, useChatStore } from '@/store'
+import { useAppStore, useAuthStore } from '@/store'
+import Chat from '@/views/chat/index.vue'
+import FallingFallings from '@/components/custom/FallingFallings.vue'
 
-const router = useRouter()
 const appStore = useAppStore()
-const chatStore = useChatStore()
 const authStore = useAuthStore()
-
-router.replace({ name: 'Chat', params: { uuid: chatStore.active } })
 
 const { isMobile } = useBasicLayout()
 
@@ -40,12 +37,11 @@ const getContainerClass = computed(() => {
       <NLayout class="z-40 transition" :class="getContainerClass" has-sider>
         <Sider />
         <NLayoutContent class="h-full">
-          <RouterView v-slot="{ Component, route }">
-            <component :is="Component" :key="route.fullPath" />
-          </RouterView>
+          <Chat />
         </NLayoutContent>
       </NLayout>
     </div>
     <Permission :visible="needPermission" />
   </div>
+  <FallingFallings />
 </template>

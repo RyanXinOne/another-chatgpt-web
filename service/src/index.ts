@@ -59,7 +59,7 @@ router.post('/verify', async (req, res) => {
 
     const authConfig = await getAuthConfig()
     if (!(token in authConfig && authConfig[token].allow))
-      throw new Error('密钥无效 | Secret key is invalid')
+      throw new Error('Your secret key is invalid')
 
     res.send({ status: 'Success', message: 'Verify successfully', data: authConfig[token].info })
   }

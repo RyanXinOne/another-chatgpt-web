@@ -13,33 +13,33 @@ const chatStore = useChatStore()
 
 const dataSources = computed(() => chatStore.history)
 
-async function handleSelect({ uuid }: Chat.History) {
+function handleSelect(uuid: number) {
   if (isActive(uuid))
     return
 
   if (chatStore.active)
     chatStore.updateHistory(chatStore.active, { isEdit: false })
-  await chatStore.setActive(uuid)
+  chatStore.setActive(uuid)
 
   if (isMobile.value)
     appStore.setSiderCollapsed(true)
 }
 
-function handleEdit({ uuid }: Chat.History, isEdit: boolean, event?: MouseEvent) {
+function handleEdit(uuid: number, isEdit: boolean, event?: MouseEvent) {
   event?.stopPropagation()
   chatStore.updateHistory(uuid, { isEdit })
 }
 
-function handleDelete(index: number, event?: MouseEvent | TouchEvent) {
+function handleDelete(uuid: number, event?: MouseEvent | TouchEvent) {
   event?.stopPropagation()
-  chatStore.deleteHistory(index)
+  chatStore.deleteHistoryAndChat(uuid)
   if (isMobile.value)
     appStore.setSiderCollapsed(true)
 }
 
 const handleDeleteDebounce = debounce(handleDelete, 600)
 
-function handleEnter({ uuid }: Chat.History, isEdit: boolean, event: KeyboardEvent) {
+function handleEnter(uuid: number, isEdit: boolean, event: KeyboardEvent) {
   event?.stopPropagation()
   if (event.key === 'Enter')
     chatStore.updateHistory(uuid, { isEdit })
@@ -64,7 +64,7 @@ function isActive(uuid: number) {
           <a
             class="relative flex items-center gap-3 px-3 py-3 break-all border rounded-md cursor-pointer hover:bg-neutral-100 group dark:border-neutral-800 dark:hover:bg-[#24272e]"
             :class="isActive(item.uuid) && ['border-[#4b9e5f]', 'bg-neutral-100', 'text-[#4b9e5f]', 'dark:bg-[#24272e]', 'dark:border-[#4b9e5f]', 'pr-14']"
-            @click="handleSelect(item)"
+            @click="handleSelect(item.uuid)"
           >
             <span>
               <SvgIcon icon="ri:message-3-line" />
@@ -73,21 +73,21 @@ function isActive(uuid: number) {
               <NInput
                 v-if="item.isEdit"
                 v-model:value="item.title" size="tiny"
-                @keypress="handleEnter(item, false, $event)"
+                @keypress="handleEnter(item.uuid, false, $event)"
               />
               <span v-else>{{ item.title }}</span>
             </div>
             <div v-if="isActive(item.uuid)" class="absolute z-10 flex visible right-1">
               <template v-if="item.isEdit">
-                <button class="p-1" @click="handleEdit(item, false, $event)">
+                <button class="p-1" @click="handleEdit(item.uuid, false, $event)">
                   <SvgIcon icon="ri:save-line" />
                 </button>
               </template>
               <template v-else>
                 <button class="p-1">
-                  <SvgIcon icon="ri:edit-line" @click="handleEdit(item, true, $event)" />
+                  <SvgIcon icon="ri:edit-line" @click="handleEdit(item.uuid, true, $event)" />
                 </button>
-                <NPopconfirm placement="bottom" @positive-click="handleDeleteDebounce(index, $event)">
+                <NPopconfirm placement="bottom" @positive-click="handleDeleteDebounce(item.uuid, $event)">
                   <template #trigger>
                     <button class="p-1">
                       <SvgIcon icon="ri:delete-bin-line" />

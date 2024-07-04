@@ -3,16 +3,10 @@ import { computed, nextTick } from 'vue'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useAppStore, useChatStore } from '@/store'
 
-interface Props {
-  usingContext: boolean
-}
-
 interface Emit {
   (ev: 'export'): void
   (ev: 'handleClear'): void
 }
-
-defineProps<Props>()
 
 const emit = defineEmits<Emit>()
 
@@ -20,7 +14,10 @@ const appStore = useAppStore()
 const chatStore = useChatStore()
 
 const collapsed = computed(() => appStore.siderCollapsed)
-const currentChatHistory = computed(() => chatStore.getChatHistoryByCurrentActive)
+
+const uuid = computed(() => chatStore.active)
+
+const currentHistory = computed(() => chatStore.getHistory(uuid.value))
 
 function handleUpdateCollapsed() {
   appStore.setSiderCollapsed(!collapsed.value)
@@ -59,7 +56,7 @@ function handleClear() {
         class="flex-1 px-4 pr-6 overflow-hidden cursor-pointer select-none text-ellipsis whitespace-nowrap"
         @dblclick="onScrollToTop"
       >
-        {{ currentChatHistory?.title ?? '' }}
+        {{ currentHistory?.title ?? '' }}
       </h1>
       <div class="flex items-center space-x-2">
         <HoverButton @click="handleExport">
