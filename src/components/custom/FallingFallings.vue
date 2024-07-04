@@ -237,8 +237,8 @@ export default {
   position: absolute;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   z-index: 1000;
   pointer-events: none;
@@ -252,7 +252,7 @@ export default {
 .falling-object {
   position: absolute;
   border-radius: 50%;
-  background-image: url('./tutu.png');
+  background-image: url('@/assets/falling.png');
   background-size: cover;
 }
 </style>

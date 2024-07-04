@@ -5,7 +5,7 @@ import pkg from '../../../../package.json'
 <template>
   <div class="p-4 space-y-4">
     <h2 class="text-xl font-bold">
-      Version - {{ pkg.version }}
+      Another ChatGPT Web - v{{ pkg.version }}
     </h2>
     <div class="p-2 space-y-2 rounded-md bg-neutral-100 dark:bg-neutral-700">
       <p>

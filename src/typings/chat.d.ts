@@ -1,23 +1,29 @@
 declare namespace Chat {
 
-	interface ChatState {
+	interface State {
 		active: number | null
 		history: History[]
-		chat: { uuid: number; data: Chat[], usingContext?: boolean }[]
+		chat: Chat[]
+	}
+
+	interface History {
+		uuid: number
+		title: string
+		isEdit: boolean
 	}
 
 	interface Chat {
+		uuid: number
+		data: Message[]
+		usingContext?: boolean
+	}
+
+	interface Message {
 		dateTime: string
 		text: string
 		inversion?: boolean
 		error?: boolean
 		loading?: boolean
-	}
-
-	interface History {
-		title: string
-		isEdit: boolean
-		uuid: number
 	}
 
 	interface ConversationResponse {

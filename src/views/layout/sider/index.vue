@@ -20,7 +20,7 @@ const show = ref(false)
 const collapsed = computed(() => appStore.siderCollapsed)
 
 function handleAdd() {
-  chatStore.addHistory({ title: t('chat.newChatTitle'), uuid: Date.now(), isEdit: false })
+  chatStore.addHistoryAndChat()
   if (isMobile.value)
     appStore.setSiderCollapsed(true)
 }
@@ -36,7 +36,7 @@ function handleClearAll() {
     positiveText: t('common.yes'),
     negativeText: t('common.no'),
     onPositiveClick: () => {
-      chatStore.clearHistory()
+      chatStore.clearHistoryAndChat()
       if (isMobile.value)
         appStore.setSiderCollapsed(true)
     },

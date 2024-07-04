@@ -1,15 +1,12 @@
 <script setup lang='ts'>
 import type { Ref } from 'vue'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { NAutoComplete, NButton, NInput, useDialog, useMessage } from 'naive-ui'
 import { toPng } from 'html-to-image'
 import { getEncoding } from 'js-tiktoken'
-import { Message } from './components'
 import { useScroll } from './hooks/useScroll'
-import { useChat } from './hooks/useChat'
-import { useUsingContext } from './hooks/useUsingContext'
+import Message from './components/Message/index.vue'
 import HeaderComponent from './components/Header/index.vue'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
@@ -22,28 +19,25 @@ let controller = new AbortController()
 
 const openLongReply = import.meta.env.VITE_GLOB_OPEN_LONG_REPLY === 'true'
 
-const route = useRoute()
 const dialog = useDialog()
 const ms = useMessage()
 
 const chatStore = useChatStore()
 const settingStore = useSettingStore()
+const promptStore = usePromptStore()
 
 const { isMobile } = useBasicLayout()
-const { addChat, updateChat, updateChatSome, getChatByUuidAndIndex } = useChat()
 const { scrollRef, scrollToBottom, scrollToBottomIfAtBottom } = useScroll()
-const { usingContext, toggleUsingContext } = useUsingContext()
 
-const { uuid } = route.params as { uuid: string }
+const uuid = computed(() => chatStore.active)
 
-const dataSources = computed(() => chatStore.getChatByUuid(+uuid))
+const dataSources = computed(() => chatStore.getChatMessages(uuid.value))
+
+const usingContext = computed<boolean>(() => chatStore.getChatUsingContext(uuid.value))
 
 const prompt = ref<string>('')
 const loading = ref<boolean>(false)
 const inputRef = ref<Ref | null>(null)
-
-// 添加PromptStore
-const promptStore = usePromptStore()
 
 // 使用storeToRefs，保证store修改后，联想部分能够重新渲染
 const { promptList: promptTemplate } = storeToRefs<any>(promptStore)
@@ -51,12 +45,8 @@ const { promptList: promptTemplate } = storeToRefs<any>(promptStore)
 // 未知原因刷新页面，loading 状态不会重置，手动重置
 dataSources.value.forEach((item, index) => {
   if (item.loading)
-    updateChatSome(+uuid, index, { loading: false })
+  chatStore.updateChatMessage(uuid.value, index, { loading: false })
 })
-
-function handleSubmit() {
-  onConversation()
-}
 
 function buildContextMessages(startIndex: number, endIndex: number, maxTokens: number = 128000): [PostMessage] {
   startIndex = Math.max(0, startIndex)
@@ -111,8 +101,12 @@ async function onConversation() {
 
   controller = new AbortController()
 
-  addChat(
-    +uuid,
+  if (!uuid.value) {
+    chatStore.addHistoryAndChat()
+  }
+
+  chatStore.addChatMessage(
+    uuid.value,
     {
       dateTime: new Date().toLocaleString(),
       text: message,
@@ -127,8 +121,8 @@ async function onConversation() {
   loading.value = true
   prompt.value = ''
 
-  addChat(
-    +uuid,
+  chatStore.addChatMessage(
+    uuid.value,
     {
       dateTime: new Date().toLocaleString(),
       text: t('chat.thinking'),
@@ -152,8 +146,8 @@ async function onConversation() {
             const chunks = responseText.trim().split('\n')
             const data: Chat.ConversationResponse[] = chunks.map((chunk: string) => JSON.parse(chunk))
             const text = lastText + data.map((response) => response.choices[0]?.delta?.content || '').join('')
-            updateChat(
-              +uuid,
+            chatStore.updateChatMessage(
+              uuid.value,
               dataSources.value.length - 1,
               {
                 dateTime: new Date().toLocaleString(),
@@ -178,15 +172,15 @@ async function onConversation() {
           }
         },
       })
-      updateChatSome(+uuid, dataSources.value.length - 1, { loading: false })
+      chatStore.updateChatMessage(uuid.value, dataSources.value.length - 1, { loading: false })
     }
 
     await fetchChatAPIOnce()
   }
   catch (error: any) {
     if (error.message === 'canceled') {
-      updateChatSome(
-        +uuid,
+      chatStore.updateChatMessage(
+        uuid.value,
         dataSources.value.length - 1,
         {
           loading: false,
@@ -198,11 +192,11 @@ async function onConversation() {
 
     const errorMessage = error?.message ?? t('common.wrong')
 
-    const currentChat = getChatByUuidAndIndex(+uuid, dataSources.value.length - 1)
+    const currentChat = chatStore.getChatMessage(uuid.value, dataSources.value.length - 1)
 
     if (currentChat?.text && currentChat.text !== '') {
-      updateChatSome(
-        +uuid,
+      chatStore.updateChatMessage(
+        uuid.value,
         dataSources.value.length - 1,
         {
           text: `${currentChat.text}\n[${errorMessage}]`,
@@ -213,8 +207,8 @@ async function onConversation() {
       return
     }
 
-    updateChat(
-      +uuid,
+    chatStore.updateChatMessage(
+      uuid.value,
       dataSources.value.length - 1,
       {
         dateTime: new Date().toLocaleString(),
@@ -244,8 +238,8 @@ async function onRegenerate(index: number) {
 
   loading.value = true
 
-  updateChat(
-    +uuid,
+  chatStore.updateChatMessage(
+    uuid.value,
     index,
     {
       dateTime: new Date().toLocaleString(),
@@ -269,8 +263,8 @@ async function onRegenerate(index: number) {
             const chunks = responseText.trim().split('\n')
             const data: Chat.ConversationResponse[] = chunks.map((chunk: string) => JSON.parse(chunk))
             const text = lastText + data.map((response) => response.choices[0]?.delta?.content || '').join('')
-            updateChat(
-              +uuid,
+            chatStore.updateChatMessage(
+              uuid.value,
               index,
               {
                 dateTime: new Date().toLocaleString(),
@@ -293,14 +287,14 @@ async function onRegenerate(index: number) {
           }
         },
       })
-      updateChatSome(+uuid, index, { loading: false })
+      chatStore.updateChatMessage(uuid.value, index, { loading: false })
     }
     await fetchChatAPIOnce()
   }
   catch (error: any) {
     if (error.message === 'canceled') {
-      updateChatSome(
-        +uuid,
+      chatStore.updateChatMessage(
+        uuid.value,
         index,
         {
           loading: false,
@@ -311,11 +305,11 @@ async function onRegenerate(index: number) {
 
     const errorMessage = error?.message ?? t('common.wrong')
 
-    const currentChat = getChatByUuidAndIndex(+uuid, index)
+    const currentChat = chatStore.getChatMessage(uuid.value, index)
 
     if (currentChat?.text && currentChat.text !== '') {
-      updateChatSome(
-        +uuid,
+      chatStore.updateChatMessage(
+        uuid.value,
         index,
         {
           text: `${currentChat.text}\n[${errorMessage}]`,
@@ -326,8 +320,8 @@ async function onRegenerate(index: number) {
       return
     }
 
-    updateChat(
-      +uuid,
+    chatStore.updateChatMessage(
+      uuid.value,
       index,
       {
         dateTime: new Date().toLocaleString(),
@@ -341,6 +335,18 @@ async function onRegenerate(index: number) {
   finally {
     loading.value = false
   }
+}
+
+function toggleUsingContext() {
+  chatStore.toggleChatUsingContext(uuid.value)
+  if (usingContext.value)
+    ms.success(t('chat.turnOnContext'))
+  else
+    ms.warning(t('chat.turnOffContext'))
+}
+
+function handleSubmit() {
+  onConversation()
 }
 
 function handleExport() {
@@ -391,7 +397,7 @@ function handleDelete(index: number) {
     positiveText: t('common.yes'),
     negativeText: t('common.no'),
     onPositiveClick: () => {
-      chatStore.deleteChatByUuid(+uuid, index)
+      chatStore.deleteChatMessage(uuid.value, index)
     },
   })
 }
@@ -406,7 +412,7 @@ function handleClear() {
     positiveText: t('common.yes'),
     negativeText: t('common.no'),
     onPositiveClick: () => {
-      chatStore.clearChatByUuid(+uuid)
+      chatStore.clearChatMessages(uuid.value)
     },
   })
 }
@@ -492,7 +498,6 @@ onUnmounted(() => {
   <div class="flex flex-col w-full h-full">
     <HeaderComponent
       v-if="isMobile"
-      :using-context="usingContext"
       @export="handleExport"
       @handle-clear="handleClear"
     />
@@ -519,7 +524,7 @@ onUnmounted(() => {
                   :inversion="item.inversion"
                   :error="item.error"
                   :loading="item.loading"
-                  :uuid="+uuid"
+                  :uuid="uuid"
                   :index="index"
                   @regenerate="onRegenerate(index)"
                   @delete="handleDelete(index)"
