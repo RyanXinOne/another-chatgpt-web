@@ -1,21 +1,15 @@
+import * as dotenv from 'dotenv'
 import express from 'express'
+import type { ChatCompletionChunk } from 'openai/src/resources/chat'
 import { chatReplyProcess } from './chatgpt'
 import { auth, getAuthConfig } from './middleware/auth'
 import type { RequestProps } from './types'
-import type { ChatCompletionChunk } from 'openai/src/resources/chat'
 
-const app = express()
+dotenv.config({ override: true })
+
+const SERVER_PORT: number = parseInt(process.env.SERVER_PORT) || 3002
+
 const router = express.Router()
-
-app.use(express.static('public'))
-app.use(express.json({ limit: '1mb' }))
-
-app.all('*', (_, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*')
-  res.header('Access-Control-Allow-Headers', 'authorization, Content-Type')
-  res.header('Access-Control-Allow-Methods', '*')
-  next()
-})
 
 router.post('/chat-process', [auth], async (req, res) => {
   res.setHeader('Content-type', 'application/octet-stream')
@@ -68,8 +62,15 @@ router.post('/verify', async (req, res) => {
   }
 })
 
-app.use('', router)
+const app = express()
+app.use(express.static('public'))
+app.use(express.json({ limit: '1mb' }))
+app.all('*', (_, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*')
+  res.header('Access-Control-Allow-Headers', 'authorization, Content-Type')
+  res.header('Access-Control-Allow-Methods', '*')
+  next()
+})
 app.use('/api', router)
 app.set('trust proxy', 1)
-
-app.listen(3002, () => global.console.log('Server is running on port 3002'))
+app.listen(SERVER_PORT, () => global.console.log(`Server is running on port ${SERVER_PORT}`))

@@ -1,17 +1,18 @@
 import * as dotenv from 'dotenv'
 import OpenAI from 'openai'
-import type { CompletionUsage } from 'openai/src/resources/completions'
 import { encoding_for_model } from 'tiktoken'
+import type { CompletionUsage } from 'openai/src/resources/completions'
 import { sendResponse } from '../utils'
 import { isNotEmptyString } from '../utils/is'
-import type { Message, Model, ModelContext, RequestOptions } from './types'
 import { logUsage } from '../middleware/logger'
+import type { Message, Model, ModelContext, RequestOptions } from './types'
 
 dotenv.config({ override: true })
 
-const DEBUG_MODE = process.env.DEBUG_MODE === 'true'
+const OPENAI_API_KEY: string = process.env.OPENAI_API_KEY ?? ''
+const DEBUG_MODE: boolean = process.env.DEBUG_MODE === 'true'
 
-if (!isNotEmptyString(process.env.OPENAI_API_KEY))
+if (!isNotEmptyString(OPENAI_API_KEY))
   throw new Error('Missing OPENAI_API_KEY environment variable')
 
 const model_contexts: { [model in Model]: ModelContext } = {
@@ -53,7 +54,7 @@ function filterMessagesByTokenCount(messages: Message[], model: Model, max_token
 }
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: OPENAI_API_KEY,
 })
 
 export async function chatReplyProcess(options: RequestOptions) {
