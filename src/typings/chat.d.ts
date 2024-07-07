@@ -16,7 +16,7 @@ declare namespace Chat {
 		uuid: number
 		data: Message[]
 		usingContext?: boolean
-		draftPrompt: string
+		draftPrompt?: string
 	}
 
 	interface Message {

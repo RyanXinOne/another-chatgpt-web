@@ -18,7 +18,7 @@ export const useChatStore = defineStore('chat-store', {
     addHistoryAndChat() {
       const uuid = Date.now()
       this.history.unshift({ uuid, title: t('chat.newChatTitle'), isEdit: false })
-      this.chat.unshift({ uuid, data: [], usingContext: true, draftPrompt: ''})
+      this.chat.unshift({ uuid, data: [], usingContext: true, draftPrompt: '' })
       this.recordState()
       this.setActive(uuid)
     },
@@ -113,12 +113,12 @@ export const useChatStore = defineStore('chat-store', {
       this.recordState()
     },
 
-    getDraftPrompt(uuid: number | null): string {
+    getChatDraftPrompt(uuid: number | null): string {
       const index = this.chat.findIndex(item => item.uuid === uuid)
-      return index > -1 ? this.chat[index].draftPrompt : ''
+      return index > -1 ? (this.chat[index].draftPrompt ?? '') : ''
     },
 
-    updateDraftPrompt(uuid: number | null, draftPrompt: string) {
+    updateChatDraftPrompt(uuid: number | null, draftPrompt: string) {
       const index = this.chat.findIndex(item => item.uuid === uuid)
       if (index === -1)
         return

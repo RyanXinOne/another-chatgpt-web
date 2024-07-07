@@ -35,7 +35,8 @@ const dataSources = computed(() => chatStore.getChatMessages(uuid.value))
 
 const usingContext = computed<boolean>(() => chatStore.getChatUsingContext(uuid.value))
 
-const draftPrompt = computed<string>(() => chatStore.getDraftPrompt(uuid.value))
+const draftPrompt = computed<string>(() => chatStore.getChatDraftPrompt(uuid.value))
+
 const prompt = ref<string>('')
 const loading = ref<boolean>(false)
 const inputRef = ref<Ref | null>(null)
@@ -85,6 +86,7 @@ async function onConversation() {
   if (message.trim() === '/\u5154\u5154') {
     window.dispatchEvent(new Event('fallings'))
     prompt.value = ''
+    chatStore.updateChatDraftPrompt(uuid.value, '')
     return
   }
 
@@ -115,7 +117,7 @@ async function onConversation() {
 
   loading.value = true
   prompt.value = ''
-  chatStore.updateDraftPrompt(uuid.value, '')
+  chatStore.updateChatDraftPrompt(uuid.value, '')
 
   chatStore.addChatMessage(
     uuid.value,
@@ -450,10 +452,9 @@ function resetState() {
     inputRef.value?.focus()
 }
 
-function updateDraftPrompt() {
-  chatStore.updateDraftPrompt(uuid.value, prompt.value)
+function updateDraftPrompt(text: string) {
+  chatStore.updateChatDraftPrompt(uuid.value, text)
 }
-
 
 // 可优化部分
 // 搜索选项计算，这里使用value作为索引项，所以当出现重复value时渲染异常(多项同时出现选中效果)
@@ -578,7 +579,7 @@ watch(uuid, resetState)
                 type="textarea"
                 :placeholder="placeholder"
                 :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }"
-                @input="(s) => {handleInput(s); updateDraftPrompt()}"
+                @input="(s) => {handleInput(s); updateDraftPrompt(s)}"
                 @focus="handleFocus"
                 @blur="handleBlur"
                 @keypress="handleEnter"
