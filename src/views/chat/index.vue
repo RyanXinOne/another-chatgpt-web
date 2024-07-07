@@ -35,6 +35,7 @@ const dataSources = computed(() => chatStore.getChatMessages(uuid.value))
 
 const usingContext = computed<boolean>(() => chatStore.getChatUsingContext(uuid.value))
 
+const draftPrompt = computed<string>(() => chatStore.getDraftPrompt(uuid.value))
 const prompt = ref<string>('')
 const loading = ref<boolean>(false)
 const inputRef = ref<Ref | null>(null)
@@ -114,6 +115,7 @@ async function onConversation() {
 
   loading.value = true
   prompt.value = ''
+  chatStore.updateDraftPrompt(uuid.value, '')
 
   chatStore.addChatMessage(
     uuid.value,
@@ -443,10 +445,15 @@ function resetState() {
       chatStore.updateChatMessage(uuid.value, index, { loading: false })
   })
   scrollToBottom()
-  prompt.value = ''
+  prompt.value = draftPrompt.value
   if (inputRef.value && !isMobile.value)
     inputRef.value?.focus()
 }
+
+function updateDraftPrompt() {
+  chatStore.updateDraftPrompt(uuid.value, prompt.value)
+}
+
 
 // 可优化部分
 // 搜索选项计算，这里使用value作为索引项，所以当出现重复value时渲染异常(多项同时出现选中效果)
@@ -571,7 +578,7 @@ watch(uuid, resetState)
                 type="textarea"
                 :placeholder="placeholder"
                 :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }"
-                @input="handleInput"
+                @input="(s) => {handleInput(s); updateDraftPrompt()}"
                 @focus="handleFocus"
                 @blur="handleBlur"
                 @keypress="handleEnter"
