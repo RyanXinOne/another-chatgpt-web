@@ -1,6 +1,6 @@
 <script setup lang='ts'>
 import type { Ref } from 'vue'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { NAutoComplete, NButton, NInput, useDialog, useMessage } from 'naive-ui'
 import { toPng } from 'html-to-image'
@@ -41,12 +41,6 @@ const inputRef = ref<Ref | null>(null)
 
 // 使用storeToRefs，保证store修改后，联想部分能够重新渲染
 const { promptList: promptTemplate } = storeToRefs<any>(promptStore)
-
-// 未知原因刷新页面，loading 状态不会重置，手动重置
-dataSources.value.forEach((item, index) => {
-  if (item.loading)
-  chatStore.updateChatMessage(uuid.value, index, { loading: false })
-})
 
 function buildContextMessages(startIndex: number, endIndex: number, maxTokens: number = 128000): [PostMessage] {
   startIndex = Math.max(0, startIndex)
@@ -439,6 +433,21 @@ function handleStop() {
   }
 }
 
+function resetState() {
+  if (loading.value) {
+    controller.abort()
+    loading.value = false
+  }
+  dataSources.value.forEach((item, index) => {
+    if (item.loading)
+      chatStore.updateChatMessage(uuid.value, index, { loading: false })
+  })
+  scrollToBottom()
+  prompt.value = ''
+  if (inputRef.value && !isMobile.value)
+    inputRef.value?.focus()
+}
+
 // 可优化部分
 // 搜索选项计算，这里使用value作为索引项，所以当出现重复value时渲染异常(多项同时出现选中效果)
 // 理想状态下其实应该是key作为索引项,但官方的renderOption会出现问题，所以就需要value反renderLabel实现
@@ -482,16 +491,9 @@ const footerClass = computed(() => {
   return classes
 })
 
-onMounted(() => {
-  scrollToBottom()
-  if (inputRef.value && !isMobile.value)
-    inputRef.value?.focus()
-})
+onMounted(resetState)
 
-onUnmounted(() => {
-  if (loading.value)
-    controller.abort()
-})
+watch(uuid, resetState)
 </script>
 
 <template>
