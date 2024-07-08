@@ -35,7 +35,13 @@ const dataSources = computed(() => chatStore.getChatMessages(uuid.value))
 
 const usingContext = computed<boolean>(() => chatStore.getChatUsingContext(uuid.value))
 
-const prompt = ref<string>('')
+const prompt = computed<string>({
+  get: () => chatStore.getChatDraftPrompt(uuid.value),
+  set: (value) => {
+    chatStore.updateChatDraftPrompt(uuid.value, value)
+  },
+})
+
 const loading = ref<boolean>(false)
 const inputRef = ref<Ref | null>(null)
 
@@ -443,7 +449,6 @@ function resetState() {
       chatStore.updateChatMessage(uuid.value, index, { loading: false })
   })
   scrollToBottom()
-  prompt.value = ''
   if (inputRef.value && !isMobile.value)
     inputRef.value?.focus()
 }
