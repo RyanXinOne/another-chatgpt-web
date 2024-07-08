@@ -6,7 +6,7 @@
 
 ## Introduction
 
-This project is developed from the source project [chatgpt-web](https://github.com/Chanzhaoyu/chatgpt-web) with backend refactored from [chatgpt-api](https://github.com/transitive-bullshit/agentic/tree/chatgpt-api) which has been out-of-maintenance to official [openai-node](https://github.com/openai/openai-node) API with much flexibility and extensibility.
+This project is developed from the source project [chatgpt-web](https://github.com/Chanzhaoyu/chatgpt-web) with backend refactored from third-party [chatgpt-api](https://github.com/transitive-bullshit/agentic/tree/chatgpt-api) which has been out-of-maintenance to official [openai-node](https://github.com/openai/openai-node) API with much flexibility and extensibility.
 
 ![preview](./preview/chat_editing.png)
 
@@ -22,6 +22,8 @@ This project has the following new features standing on the source project [chat
 
 [✓] Full session history control
 
+[✓] Conversation-wise draft prompt and context state
+
 ### Backend
 
 [✓] Built with official [openai-node](https://github.com/openai/openai-node) API
@@ -34,6 +36,10 @@ More coming...
 
 ## Prerequisites
 
+### Node
+
+`node` >= 18
+
 ### PNPM
 
 If you haven't installed `pnpm`
@@ -43,13 +49,15 @@ npm install -g pnpm
 
 ### Filling in `service/.env` file
 
-You should complete the environment variable file following `service/.env.example`, including setting up your **OpenAI API Key**.
+You should complete the environment variable file following [`service/.env.example`](service/.env.example), including setting up your **OpenAI API Key**.
 
 ### [optional] Prepare `service/auth.json` file
 
-If you would like to setup access tokens for users, create the auth config file following `service/auth.example.json` to define relevant user information, including name, avatar link, and description.
+If you would like to setup access tokens for users, create the auth config file following [`service/auth.example.json`](service/auth.example.json) to define relevant user information, including name, avatar link, and description.
 
 ## Install Dependencies
+
+Under root directory of the repository:
 
 ### Frontend
 
@@ -67,13 +75,9 @@ pnpm install
 
 ## Run in Test Environment
 
-### Frontend Webpage
+### Start backend service
 
-```shell
-pnpm dev
-```
-
-### Backend Service
+In one terminal:
 
 ```shell
 cd service/
@@ -81,11 +85,21 @@ cd service/
 pnpm dev
 ```
 
+### Start frontend proxy
+
+In another terminal:
+
+```shell
+pnpm dev
+```
+
+Access `http://127.0.0.1:3002/` to see a preview during development.
+
 ## Packaging and Deployment
 
 ### Frontend Webpage
 
-Optionally modify `.env` file.
+Optionally modify frontend [`.env`](.env) file.
 
 ```shell
 # Install
