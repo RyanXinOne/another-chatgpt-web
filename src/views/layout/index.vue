@@ -1,12 +1,12 @@
 <script setup lang='ts'>
 import { computed } from 'vue'
 import { NLayout, NLayoutContent } from 'naive-ui'
-import Sider from './sider/index.vue'
 import Permission from './Permission.vue'
+import Chat from '@/views/chat/index.vue'
+import Sider from '@/views/sider/index.vue'
+import FallingFallings from '@/components/custom/FallingFallings.vue'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { useAppStore, useAuthStore } from '@/store'
-import Chat from '@/views/chat/index.vue'
-import FallingFallings from '@/components/custom/FallingFallings.vue'
 
 const appStore = useAppStore()
 const authStore = useAuthStore()

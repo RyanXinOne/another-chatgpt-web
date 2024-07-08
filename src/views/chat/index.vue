@@ -107,7 +107,7 @@ async function chatProcess(uuid: number | null, index: number, usingContext: boo
   try {
     let lastText = ''
     const fetchChatAPIOnce = async () => {
-      await fetchChatAPIProcess<Chat.ConversationResponse>({
+      await fetchChatAPIProcess<ConversationResponse>({
         messages,
         signal: controller.signal,
         onDownloadProgress: ({ event }) => {
@@ -115,7 +115,7 @@ async function chatProcess(uuid: number | null, index: number, usingContext: boo
           const { responseText } = xhr
           try {
             const chunks = responseText.trim().split('\n')
-            const data: Chat.ConversationResponse[] = chunks.map((chunk: string) => JSON.parse(chunk))
+            const data: ConversationResponse[] = chunks.map((chunk: string) => JSON.parse(chunk))
             const text = lastText + data.map((response) => response.choices[0]?.delta?.content || '').join('')
             chatStore.updateChatMessage(
               uuid,

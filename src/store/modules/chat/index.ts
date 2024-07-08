@@ -17,7 +17,7 @@ export const useChatStore = defineStore('chat-store', {
 
     addHistoryAndChat() {
       const uuid = Date.now()
-      this.history.unshift({ uuid, title: t('chat.newChatTitle'), isEdit: false })
+      this.history.unshift({ uuid, title: t('chat.newChatTitle') })
       this.chat.unshift({ uuid, data: [], usingContext: true, draftPrompt: '' })
       this.recordState()
       this.setActive(uuid)
