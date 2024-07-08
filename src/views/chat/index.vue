@@ -35,9 +35,13 @@ const dataSources = computed(() => chatStore.getChatMessages(uuid.value))
 
 const usingContext = computed<boolean>(() => chatStore.getChatUsingContext(uuid.value))
 
-const draftPrompt = computed<string>(() => chatStore.getChatDraftPrompt(uuid.value))
+const prompt = computed<string>({
+  get: () => chatStore.getChatDraftPrompt(uuid.value),
+  set: (value) => {
+    chatStore.updateChatDraftPrompt(uuid.value, value)
+  },
+})
 
-const prompt = ref<string>('')
 const loading = ref<boolean>(false)
 const inputRef = ref<Ref | null>(null)
 
@@ -86,7 +90,6 @@ async function onConversation() {
   if (message.trim() === '/\u5154\u5154') {
     window.dispatchEvent(new Event('fallings'))
     prompt.value = ''
-    chatStore.updateChatDraftPrompt(uuid.value, '')
     return
   }
 
@@ -117,7 +120,6 @@ async function onConversation() {
 
   loading.value = true
   prompt.value = ''
-  chatStore.updateChatDraftPrompt(uuid.value, '')
 
   chatStore.addChatMessage(
     uuid.value,
@@ -447,13 +449,8 @@ function resetState() {
       chatStore.updateChatMessage(uuid.value, index, { loading: false })
   })
   scrollToBottom()
-  prompt.value = draftPrompt.value
   if (inputRef.value && !isMobile.value)
     inputRef.value?.focus()
-}
-
-function updateDraftPrompt(text: string) {
-  chatStore.updateChatDraftPrompt(uuid.value, text)
 }
 
 // 可优化部分
@@ -579,7 +576,7 @@ watch(uuid, resetState)
                 type="textarea"
                 :placeholder="placeholder"
                 :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }"
-                @input="(s) => {handleInput(s); updateDraftPrompt(s)}"
+                @input="handleInput"
                 @focus="handleFocus"
                 @blur="handleBlur"
                 @keypress="handleEnter"
