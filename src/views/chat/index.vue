@@ -48,9 +48,11 @@ const inputRef = ref<Ref | null>(null)
 // 使用storeToRefs，保证store修改后，联想部分能够重新渲染
 const { promptList: promptTemplate } = storeToRefs<any>(promptStore)
 
-function buildContextMessages(startIndex: number, endIndex: number, maxTokens: number = 128000): [PostMessage] {
+function buildContextMessages(uuid: number | null, startIndex: number, endIndex: number, maxTokens: number = 128000): [PostMessage] {
+  const sourceMessages = chatStore.getChatMessages(uuid)
+
   startIndex = Math.max(0, startIndex)
-  endIndex = Math.min(dataSources.value.length, endIndex)
+  endIndex = Math.min(sourceMessages.length, endIndex)
 
   const encoding = getEncoding('cl100k_base')
   const tokens_per_message = 3
@@ -67,7 +69,7 @@ function buildContextMessages(startIndex: number, endIndex: number, maxTokens: n
 
   const messages: PostMessage[] = []
   for (let i = endIndex - 1; i >= startIndex; i--) {
-    const item = dataSources.value[i]
+    const item = sourceMessages[i]
     if (!item.error) {
       const message: PostMessage = {
         role: item.inversion ? 'user' : 'assistant',
@@ -84,171 +86,23 @@ function buildContextMessages(startIndex: number, endIndex: number, maxTokens: n
   return messages as [PostMessage]
 }
 
-async function onConversation() {
-  let message = prompt.value
-
-  if (message.trim() === '/\u5154\u5154') {
-    window.dispatchEvent(new Event('fallings'))
-    prompt.value = ''
-    return
-  }
-
-  if (loading.value)
-    return
-
-  if (!message || message.trim() === '')
-    return
-
-  controller = new AbortController()
-
-  if (!uuid.value) {
-    chatStore.addHistoryAndChat()
-  }
-
-  chatStore.addChatMessage(
-    uuid.value,
-    {
-      dateTime: new Date().toLocaleString(),
-      text: message,
-      inversion: true,
-      error: false,
-    },
-  )
-  scrollToBottom()
-
-  let messages: [PostMessage] = buildContextMessages(usingContext.value ? 0 : dataSources.value.length - 1, dataSources.value.length)
-
-  loading.value = true
-  prompt.value = ''
-
-  chatStore.addChatMessage(
-    uuid.value,
-    {
-      dateTime: new Date().toLocaleString(),
-      text: t('chat.thinking'),
-      loading: true,
-      inversion: false,
-      error: false,
-    },
-  )
-  scrollToBottom()
-
-  try {
-    let lastText = ''
-    const fetchChatAPIOnce = async () => {
-      await fetchChatAPIProcess<Chat.ConversationResponse>({
-        messages,
-        signal: controller.signal,
-        onDownloadProgress: ({ event }) => {
-          const xhr = event.target
-          const { responseText } = xhr
-          try {
-            const chunks = responseText.trim().split('\n')
-            const data: Chat.ConversationResponse[] = chunks.map((chunk: string) => JSON.parse(chunk))
-            const text = lastText + data.map((response) => response.choices[0]?.delta?.content || '').join('')
-            chatStore.updateChatMessage(
-              uuid.value,
-              dataSources.value.length - 1,
-              {
-                dateTime: new Date().toLocaleString(),
-                text,
-                inversion: false,
-                error: false,
-                loading: true,
-              },
-            )
-
-            if (openLongReply && data[data.length - 1].choices[0]?.finish_reason === 'length') {
-              lastText = text
-              messages = buildContextMessages(usingContext.value ? 0 : dataSources.value.length - 2, dataSources.value.length)
-              messages.push({ role: 'user', content: '' })
-              return fetchChatAPIOnce()
-            }
-
-            scrollToBottomIfAtBottom()
-          }
-          catch (error) {
-            //
-          }
-        },
-      })
-      chatStore.updateChatMessage(uuid.value, dataSources.value.length - 1, { loading: false })
-    }
-
-    await fetchChatAPIOnce()
-  }
-  catch (error: any) {
-    if (error.message === 'canceled') {
-      chatStore.updateChatMessage(
-        uuid.value,
-        dataSources.value.length - 1,
-        {
-          loading: false,
-        },
-      )
-      scrollToBottomIfAtBottom()
-      return
-    }
-
-    const errorMessage = error?.message ?? t('common.wrong')
-
-    const currentChat = chatStore.getChatMessage(uuid.value, dataSources.value.length - 1)
-
-    if (currentChat?.text && currentChat.text !== '') {
-      chatStore.updateChatMessage(
-        uuid.value,
-        dataSources.value.length - 1,
-        {
-          text: `${currentChat.text}\n[${errorMessage}]`,
-          error: true,
-          loading: false,
-        },
-      )
-      return
-    }
-
-    chatStore.updateChatMessage(
-      uuid.value,
-      dataSources.value.length - 1,
-      {
-        dateTime: new Date().toLocaleString(),
-        text: errorMessage,
-        inversion: false,
-        error: true,
-        loading: false,
-      },
-    )
-    scrollToBottomIfAtBottom()
-  }
-  finally {
-    loading.value = false
-  }
-}
-
-async function onRegenerate(index: number) {
-  if (loading.value)
-    return
-  // previous message must be user's
-  if (!dataSources.value[index - 1]?.inversion)
-    return
-
-  controller = new AbortController()
-
-  let messages: [PostMessage] = buildContextMessages(usingContext.value ? 0 : index - 1, index)
-
-  loading.value = true
+async function chatProcess(uuid: number | null, index: number, usingContext: boolean, regenerate: boolean = false) {
+  let messages: [PostMessage] = buildContextMessages(uuid, usingContext ? 0 : index - 1, index)
 
   chatStore.updateChatMessage(
-    uuid.value,
+    uuid,
     index,
     {
       dateTime: new Date().toLocaleString(),
-      text: '',
+      text: t('chat.thinking'),
       inversion: false,
-      error: false,
       loading: true,
+      error: false,
     },
   )
+
+  loading.value = true
+  controller = new AbortController()
 
   try {
     let lastText = ''
@@ -264,77 +118,122 @@ async function onRegenerate(index: number) {
             const data: Chat.ConversationResponse[] = chunks.map((chunk: string) => JSON.parse(chunk))
             const text = lastText + data.map((response) => response.choices[0]?.delta?.content || '').join('')
             chatStore.updateChatMessage(
-              uuid.value,
+              uuid,
               index,
               {
                 dateTime: new Date().toLocaleString(),
                 text,
-                inversion: false,
-                error: false,
-                loading: true,
               },
             )
 
             if (openLongReply && data[data.length - 1].choices[0]?.finish_reason === 'length') {
               lastText = text
-              messages = buildContextMessages(usingContext.value ? 0 : index - 1, index + 1)
+              messages = buildContextMessages(uuid, usingContext ? 0 : index - 1, index + 1)
               messages.push({ role: 'user', content: '' })
               return fetchChatAPIOnce()
             }
+
+            if (!regenerate)
+              scrollToBottomIfAtBottom()
           }
-          catch (error) {
-            //
-          }
+          catch (error) { }
         },
       })
-      chatStore.updateChatMessage(uuid.value, index, { loading: false })
     }
     await fetchChatAPIOnce()
   }
   catch (error: any) {
     if (error.message === 'canceled') {
-      chatStore.updateChatMessage(
-        uuid.value,
-        index,
-        {
-          loading: false,
-        },
-      )
+      if (!regenerate)
+        scrollToBottomIfAtBottom()
       return
     }
 
     const errorMessage = error?.message ?? t('common.wrong')
 
-    const currentChat = chatStore.getChatMessage(uuid.value, index)
+    const currentChat = chatStore.getChatMessage(uuid, index)
 
     if (currentChat?.text && currentChat.text !== '') {
       chatStore.updateChatMessage(
-        uuid.value,
+        uuid,
         index,
         {
+          dateTime: new Date().toLocaleString(),
           text: `${currentChat.text}\n[${errorMessage}]`,
           error: true,
-          loading: false,
         },
       )
       return
     }
 
     chatStore.updateChatMessage(
-      uuid.value,
+      uuid,
       index,
       {
         dateTime: new Date().toLocaleString(),
         text: errorMessage,
-        inversion: false,
         error: true,
-        loading: false,
       },
     )
+    if (!regenerate)
+      scrollToBottomIfAtBottom()
   }
   finally {
+    chatStore.updateChatMessage(uuid, index, { loading: false })
     loading.value = false
   }
+}
+
+async function onConversation() {
+  if (prompt.value.trim() === '/\u5154\u5154') {
+    window.dispatchEvent(new Event('fallings'))
+    prompt.value = ''
+    return
+  }
+  if (loading.value)
+    return
+  if (!prompt.value || prompt.value.trim() === '')
+    return
+
+  const messageUuid = uuid.value
+  const messageIndex = dataSources.value.length + 1
+
+  if (!messageUuid) {
+    chatStore.addHistoryAndChat()
+  }
+
+  chatStore.addChatMessage(
+    messageUuid,
+    {
+      dateTime: new Date().toLocaleString(),
+      text: prompt.value,
+      inversion: true,
+      error: false,
+    },
+  )
+  chatStore.addChatMessage(
+    messageUuid,
+    {
+      dateTime: new Date().toLocaleString(),
+      text: t('chat.thinking'),
+      inversion: false,
+      loading: true,
+      error: false,
+    },
+  )
+  scrollToBottom()
+  prompt.value = ''
+
+  await chatProcess(messageUuid, messageIndex, usingContext.value)
+}
+
+async function onRegenerate(messageIndex: number) {
+  if (loading.value)
+    return
+  if (!dataSources.value[messageIndex - 1]?.inversion)
+    return
+
+  await chatProcess(uuid.value, messageIndex, usingContext.value, true)
 }
 
 function toggleUsingContext() {
@@ -433,21 +332,13 @@ function handleEnter(event: KeyboardEvent) {
 }
 
 function handleStop() {
-  if (loading.value) {
-    controller.abort()
-    loading.value = false
-  }
+  controller.abort()
 }
 
 function resetState() {
   if (loading.value) {
     controller.abort()
-    loading.value = false
   }
-  dataSources.value.forEach((item, index) => {
-    if (item.loading)
-      chatStore.updateChatMessage(uuid.value, index, { loading: false })
-  })
   scrollToBottom()
   if (inputRef.value && !isMobile.value)
     inputRef.value?.focus()
@@ -496,7 +387,13 @@ const footerClass = computed(() => {
   return classes
 })
 
-onMounted(resetState)
+onMounted(() => {
+  dataSources.value.forEach((item, index) => {
+    if (item.loading)
+      chatStore.updateChatMessage(uuid.value, index, { loading: false })
+  })
+  resetState()
+})
 
 watch(uuid, resetState)
 </script>
