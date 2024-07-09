@@ -1,5 +1,6 @@
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, onUpdated, ref, watch } from 'vue'
+import type { Ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, onUpdated, ref, watch } from 'vue'
 import { NInput } from 'naive-ui'
 import MarkdownIt from 'markdown-it'
 import MdKatex from '@vscode/markdown-it-katex'
@@ -32,6 +33,8 @@ const editingText = ref('')
 const { isMobile } = useBasicLayout()
 
 const textRef = ref<HTMLElement>()
+
+const inputRef = ref<Ref | null>(null)
 
 const mdi = new MarkdownIt({
   html: false,
@@ -75,6 +78,9 @@ watch(() => props.editing, () => {
   if (props.editing) {
     editingText.value = props.text ?? ''
     emit('textEdited', editingText.value)
+    nextTick(() => {
+      inputRef.value?.focus()
+    })
   }
 })
 
@@ -162,7 +168,7 @@ onUnmounted(() => {
         </div>
         <div v-else class="whitespace-pre-wrap" v-text="text" />
       </div>
-      <NInput v-else class="editing-box" v-model:value="editingText" @input="emit('textEdited', editingText)" type="textarea" :autosize="{ minRows: 1 }" />
+      <NInput v-else class="editing-box" ref="inputRef" v-model:value="editingText" @input="emit('textEdited', editingText)" type="textarea" :autosize="{ minRows: 1 }" />
     </div>
   </div>
 </template>

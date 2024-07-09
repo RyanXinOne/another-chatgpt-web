@@ -1,5 +1,6 @@
 <script setup lang='ts'>
-import { computed, ref, watch } from 'vue'
+import type { Ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { NInput, NPopconfirm } from 'naive-ui'
 import { SvgIcon } from '@/components/common'
 import { useAppStore, useChatStore } from '@/store'
@@ -22,6 +23,8 @@ const editingTitle = ref<string>('')
 
 const editing = ref<boolean>(false)
 
+const inputRef = ref<Ref | null>(null)
+
 const isActive = computed<boolean>(() => chatStore.active === props.uuid)
 
 watch(() => isActive.value, (value) => {
@@ -42,6 +45,10 @@ function handleSelect() {
 function handleEdit() {
   editingTitle.value = props.title
   editing.value = true
+  nextTick(() => {
+    inputRef.value?.focus()
+    inputRef.value?.select()
+  })
 }
 
 function handleDelete() {
@@ -73,6 +80,7 @@ function handleCancel() {
     </span>
     <div class="relative flex-1 overflow-hidden break-all text-ellipsis whitespace-nowrap">
       <NInput
+      ref="inputRef"
       v-if="editing"
       v-model:value="editingTitle" size="tiny"
       @keydown.enter="handleSave"
