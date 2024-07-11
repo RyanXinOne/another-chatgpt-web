@@ -3,7 +3,7 @@ interface StorageData<T = any> {
   expire: number | null
 }
 
-export function createLocalStorage(options?: { expire?: number | null }) {
+function createLocalStorage(options?: { expire?: number | null }) {
   const DEFAULT_CACHE_TIME = 60 * 60 * 24 * 7
 
   const { expire } = Object.assign({ expire: DEFAULT_CACHE_TIME }, options)
@@ -52,6 +52,4 @@ export function createLocalStorage(options?: { expire?: number | null }) {
   return { set, get, remove, clear }
 }
 
-export const ls = createLocalStorage()
-
-export const ss = createLocalStorage({ expire: null })
+export const ls = createLocalStorage({ expire: null })

@@ -4,7 +4,7 @@ import { NButton, NInput, NPopconfirm, NSelect, useMessage } from 'naive-ui'
 import type { Language, Theme } from '@/store/modules/app/helper'
 import { SvgIcon } from '@/components/common'
 import { fetchVerify } from '@/api'
-import { useAppStore, useAuthStore, useUserStore } from '@/store'
+import { useAppStore, useAuthStore, useChatStore, useUserStore } from '@/store'
 import type { UserInfo } from '@/store/modules/user/helper'
 import { getCurrentDate } from '@/utils/functions'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
@@ -13,6 +13,7 @@ import { t } from '@/locales'
 const appStore = useAppStore()
 const authStore = useAuthStore()
 const userStore = useUserStore()
+const chatStore = useChatStore()
 
 const { isMobile } = useBasicLayout()
 
@@ -90,8 +91,8 @@ async function handleReset() {
 
 function exportData(): void {
   const date = getCurrentDate()
-  const data: string = localStorage.getItem('chatStorage') || '{}'
-  const jsonString: string = JSON.stringify(JSON.parse(data), null, 2)
+  const data = chatStore.export()
+  const jsonString: string = JSON.stringify(data, null, 2)
   const blob: Blob = new Blob([jsonString], { type: 'application/json' })
   const url: string = URL.createObjectURL(blob)
   const link: HTMLAnchorElement = document.createElement('a')
@@ -115,9 +116,8 @@ function importData(event: Event): void {
   reader.onload = () => {
     try {
       const data = JSON.parse(reader.result as string)
-      localStorage.setItem('chatStorage', JSON.stringify(data))
+      chatStore.import(data)
       ms.success(t('common.success'))
-      location.reload()
     }
     catch (error) {
       ms.error(t('common.invalidFileFormat'))
@@ -127,7 +127,7 @@ function importData(event: Event): void {
 }
 
 function clearData(): void {
-  localStorage.removeItem('chatStorage')
+  chatStore.clearConversations()
   location.reload()
 }
 

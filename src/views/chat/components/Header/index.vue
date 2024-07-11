@@ -15,9 +15,7 @@ const chatStore = useChatStore()
 
 const collapsed = computed(() => appStore.siderCollapsed)
 
-const uuid = computed(() => chatStore.active)
-
-const currentHistory = computed(() => chatStore.getHistory(uuid.value))
+const cid = computed(() => chatStore.active)
 
 function handleUpdateCollapsed() {
   appStore.setSiderCollapsed(!collapsed.value)
@@ -56,7 +54,7 @@ function handleClear() {
         class="flex-1 px-4 pr-6 overflow-hidden cursor-pointer select-none text-ellipsis whitespace-nowrap"
         @dblclick="onScrollToTop"
       >
-        {{ currentHistory?.title ?? '' }}
+        {{ chatStore.getTitle(cid) }}
       </h1>
       <div class="flex items-center space-x-2">
         <HoverButton @click="handleExport">

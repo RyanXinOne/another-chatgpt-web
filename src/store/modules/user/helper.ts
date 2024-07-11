@@ -1,4 +1,4 @@
-import { ss } from '@/utils/storage'
+import { ls } from '@/utils/storage'
 
 const LOCAL_NAME = 'userStorage'
 
@@ -23,10 +23,10 @@ export function defaultSetting(): UserState {
 }
 
 export function getLocalState(): UserState {
-  const localSetting: UserState | undefined = ss.get(LOCAL_NAME)
+  const localSetting: UserState | undefined = ls.get(LOCAL_NAME)
   return { ...defaultSetting(), ...localSetting }
 }
 
 export function setLocalState(setting: UserState): void {
-  ss.set(LOCAL_NAME, setting)
+  ls.set(LOCAL_NAME, setting)
 }

@@ -1,20 +1,27 @@
+type CID = string
+
+interface Chat {
+  state: ChatState.Main
+  data: ChatData.Main
+}
+
 declare namespace ChatState {
   interface Main {
-    active: number | null
-    history: number[]
-    conversation: ChatState.Conversation[]
+    active: CID | null
+    history: CID[]
+    conversations: { [key: CID]: ChatState.Conversation }
   }
 
   interface Conversation {
-    uuid: number
-    usingContext: boolean
     draftPrompt: string
+    usingContext: boolean
   }
 }
 
 declare namespace ChatData {
+  interface Main { [key: CID]: ChatData.Conversation }
+
   interface Conversation {
-    uuid: number
     title: string
     messages: ChatData.Message[]
   }
@@ -51,7 +58,7 @@ interface ConversationResponse {
 }
 
 // legacy
-declare namespace Chat {
+declare namespace LegacyChat {
   interface State {
     active: number | null
     history: History[]

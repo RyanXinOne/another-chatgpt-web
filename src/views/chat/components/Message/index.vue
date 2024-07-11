@@ -16,7 +16,7 @@ interface Props {
   inversion?: boolean
   error?: boolean
   loading?: boolean
-  uuid: number | null
+  cid: CID | null
   index: number
 }
 
@@ -110,7 +110,7 @@ async function handleCopy() {
 }
 
 function saveEditing() {
-  chatStore.updateChatMessage(props.uuid, props.index, { dateTime: new Date().toLocaleString(), text: editingText.value })
+  chatStore.updateMessage(props.cid, props.index, { dateTime: new Date().toLocaleString(), text: editingText.value })
   editing.value = false
 }
 

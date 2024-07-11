@@ -29,27 +29,47 @@ const promptStore = usePromptStore()
 const { isMobile } = useBasicLayout()
 const { scrollRef, scrollToBottom, scrollToBottomIfAtBottom } = useScroll()
 
-const uuid = computed(() => chatStore.active)
+const cid = computed(() => chatStore.active)
 
-const dataSources = computed(() => chatStore.getChatMessages(uuid.value))
+const dataSources = computed(() => chatStore.getMessages(cid.value))
 
-const usingContext = computed<boolean>(() => chatStore.getChatUsingContext(uuid.value))
+const usingContext = computed<boolean>(() => chatStore.getUsingContext(cid.value))
 
-const prompt = computed<string>({
-  get: () => chatStore.getChatDraftPrompt(uuid.value),
-  set: (value) => {
-    chatStore.updateChatDraftPrompt(uuid.value, value)
-  },
-})
+const prompt = ref<string>('')
 
 const loading = ref<boolean>(false)
 const inputRef = ref<Ref | null>(null)
 
-// 使用storeToRefs，保证store修改后，联想部分能够重新渲染
-const { promptList: promptTemplate } = storeToRefs<any>(promptStore)
+watch(prompt, (value) => {
+  chatStore.updateDraftPrompt(cid.value, value)
+})
 
-function buildContextMessages(uuid: number | null, startIndex: number, endIndex: number, maxTokens: number = 128000): [PostMessage] {
-  const sourceMessages = chatStore.getChatMessages(uuid)
+watch(cid, (newVal, oldVal) => {
+  if (oldVal !== null) {
+    resetState()
+  }
+})
+
+onMounted(() => {
+  dataSources.value.forEach((item, index) => {
+    if (item.loading)
+      chatStore.updateMessage(cid.value, index, { loading: false })
+  })
+  resetState()
+})
+
+function resetState() {
+  if (loading.value) {
+    controller.abort()
+  }
+  scrollToBottom()
+  prompt.value = chatStore.getDraftPrompt(cid.value)
+  if (inputRef.value && !isMobile.value)
+    inputRef.value?.focus()
+}
+
+function buildContextMessages(cid: CID | null, startIndex: number, endIndex: number, maxTokens: number = 128000): [PostMessage] {
+  const sourceMessages = chatStore.getMessages(cid)
 
   startIndex = Math.max(0, startIndex)
   endIndex = Math.min(sourceMessages.length, endIndex)
@@ -86,11 +106,11 @@ function buildContextMessages(uuid: number | null, startIndex: number, endIndex:
   return messages as [PostMessage]
 }
 
-async function chatProcess(uuid: number | null, index: number, usingContext: boolean, regenerate: boolean = false) {
-  let messages: [PostMessage] = buildContextMessages(uuid, usingContext ? 0 : index - 1, index)
+async function chatProcess(cid: CID | null, index: number, usingContext: boolean, regenerate: boolean = false) {
+  let messages: [PostMessage] = buildContextMessages(cid, usingContext ? 0 : index - 1, index)
 
-  chatStore.updateChatMessage(
-    uuid,
+  chatStore.updateMessage(
+    cid,
     index,
     {
       dateTime: new Date().toLocaleString(),
@@ -117,8 +137,8 @@ async function chatProcess(uuid: number | null, index: number, usingContext: boo
             const chunks = responseText.trim().split('\n')
             const data: ConversationResponse[] = chunks.map((chunk: string) => JSON.parse(chunk))
             const text = lastText + data.map((response) => response.choices[0]?.delta?.content || '').join('')
-            chatStore.updateChatMessage(
-              uuid,
+            chatStore.updateMessage(
+              cid,
               index,
               {
                 dateTime: new Date().toLocaleString(),
@@ -128,7 +148,7 @@ async function chatProcess(uuid: number | null, index: number, usingContext: boo
 
             if (openLongReply && data[data.length - 1].choices[0]?.finish_reason === 'length') {
               lastText = text
-              messages = buildContextMessages(uuid, usingContext ? 0 : index - 1, index + 1)
+              messages = buildContextMessages(cid, usingContext ? 0 : index - 1, index + 1)
               messages.push({ role: 'user', content: '' })
               return fetchChatAPIOnce()
             }
@@ -151,11 +171,11 @@ async function chatProcess(uuid: number | null, index: number, usingContext: boo
 
     const errorMessage = error?.message ?? t('common.wrong')
 
-    const currentChat = chatStore.getChatMessage(uuid, index)
+    const currentChat = chatStore.getMessage(cid, index)
 
     if (currentChat?.text && currentChat.text !== '') {
-      chatStore.updateChatMessage(
-        uuid,
+      chatStore.updateMessage(
+        cid,
         index,
         {
           dateTime: new Date().toLocaleString(),
@@ -166,8 +186,8 @@ async function chatProcess(uuid: number | null, index: number, usingContext: boo
       return
     }
 
-    chatStore.updateChatMessage(
-      uuid,
+    chatStore.updateMessage(
+      cid,
       index,
       {
         dateTime: new Date().toLocaleString(),
@@ -179,7 +199,7 @@ async function chatProcess(uuid: number | null, index: number, usingContext: boo
       scrollToBottomIfAtBottom()
   }
   finally {
-    chatStore.updateChatMessage(uuid, index, { loading: false })
+    chatStore.updateMessage(cid, index, { loading: false })
     loading.value = false
   }
 }
@@ -195,14 +215,14 @@ async function onConversation() {
   if (!prompt.value || prompt.value.trim() === '')
     return
 
-  const messageUuid = uuid.value
-  const messageIndex = dataSources.value.length + 1
-
-  if (!messageUuid) {
-    chatStore.addHistoryAndChat()
+  if (cid.value === null) {
+    chatStore.addConversation()
   }
 
-  chatStore.addChatMessage(
+  const messageUuid = cid.value
+  const messageIndex = dataSources.value.length + 1
+
+  chatStore.addMessage(
     messageUuid,
     {
       dateTime: new Date().toLocaleString(),
@@ -211,7 +231,7 @@ async function onConversation() {
       error: false,
     },
   )
-  chatStore.addChatMessage(
+  chatStore.addMessage(
     messageUuid,
     {
       dateTime: new Date().toLocaleString(),
@@ -233,11 +253,11 @@ async function onRegenerate(messageIndex: number) {
   if (!dataSources.value[messageIndex - 1]?.inversion)
     return
 
-  await chatProcess(uuid.value, messageIndex, usingContext.value, true)
+  await chatProcess(cid.value, messageIndex, usingContext.value, true)
 }
 
 function toggleUsingContext() {
-  chatStore.toggleChatUsingContext(uuid.value)
+  chatStore.toggleUsingContext(cid.value)
   if (usingContext.value)
     ms.success(t('chat.turnOnContext'))
   else
@@ -296,7 +316,7 @@ function handleDelete(index: number) {
     positiveText: t('common.yes'),
     negativeText: t('common.no'),
     onPositiveClick: () => {
-      chatStore.deleteChatMessage(uuid.value, index)
+      chatStore.deleteMessage(cid.value, index)
     },
   })
 }
@@ -311,7 +331,7 @@ function handleClear() {
     positiveText: t('common.yes'),
     negativeText: t('common.no'),
     onPositiveClick: () => {
-      chatStore.clearChatMessages(uuid.value)
+      chatStore.clearMessages(cid.value)
     },
   })
 }
@@ -335,14 +355,8 @@ function handleStop() {
   controller.abort()
 }
 
-function resetState() {
-  if (loading.value) {
-    controller.abort()
-  }
-  scrollToBottom()
-  if (inputRef.value && !isMobile.value)
-    inputRef.value?.focus()
-}
+// 使用storeToRefs，保证store修改后，联想部分能够重新渲染
+const { promptList: promptTemplate } = storeToRefs<any>(promptStore)
 
 // 可优化部分
 // 搜索选项计算，这里使用value作为索引项，所以当出现重复value时渲染异常(多项同时出现选中效果)
@@ -386,16 +400,6 @@ const footerClass = computed(() => {
     classes = ['sticky', 'left-0', 'bottom-0', 'right-0', 'p-2', 'pr-3', 'overflow-hidden']
   return classes
 })
-
-onMounted(() => {
-  dataSources.value.forEach((item, index) => {
-    if (item.loading)
-      chatStore.updateChatMessage(uuid.value, index, { loading: false })
-  })
-  resetState()
-})
-
-watch(uuid, resetState)
 </script>
 
 <template>
@@ -428,7 +432,7 @@ watch(uuid, resetState)
                   :inversion="item.inversion"
                   :error="item.error"
                   :loading="item.loading"
-                  :uuid="uuid"
+                  :cid="cid"
                   :index="index"
                   @regenerate="onRegenerate(index)"
                   @delete="handleDelete(index)"

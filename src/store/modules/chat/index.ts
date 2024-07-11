@@ -1,129 +1,149 @@
 import { defineStore } from 'pinia'
-import { defaultState, getLocalState, setLocalState } from './helper'
+import { v4 as uuidv4 } from 'uuid'
+import { getChatData, getChatState, setChatData,  setChatState } from './helper'
 import { t } from '@/locales'
 
 export const useChatStore = defineStore('chat-store', {
-  state: (): Chat.State => getLocalState(),
+  state: (): Chat => {
+    return {
+      state: getChatState(),
+      data: getChatData(),
+    }
+  },
+
+  getters: {
+    active: state => state.state.active,
+    history: state => state.state.history,
+  },
 
   actions: {
-    recordState() {
-      setLocalState(this.$state)
+    setActive(cid: CID | null) {
+      this.state.active = cid
+      setChatState(this.state)
     },
 
-    setActive(uuid: number | null) {
-      this.active = uuid
-      this.recordState()
+    addConversation() {
+      const cid: CID = uuidv4()
+      this.state.active = cid
+      this.state.history.unshift(cid)
+      this.state.conversations[cid] = { draftPrompt: '', usingContext: true }
+      this.data[cid] = { title: t('chat.newChatTitle'), messages: [] }
+      setChatState(this.state)
+      setChatData(this.data)
     },
 
-    addHistoryAndChat() {
-      const uuid = Date.now()
-      this.history.unshift({ uuid, title: t('chat.newChatTitle') })
-      this.chat.unshift({ uuid, data: [], usingContext: true, draftPrompt: '' })
-      this.recordState()
-      this.setActive(uuid)
-    },
-
-    deleteHistoryAndChat(uuid: number | null) {
-      const index = this.history.findIndex(item => item.uuid === uuid)
-      if (index === -1)
+    deleteConversation(cid: CID | null) {
+      if (cid === null)
         return
-
-      this.history.splice(index, 1)
-      this.chat.splice(index, 1)
-      this.recordState()
-
-      const next_uuid = this.history.length > 0 ? this.history[index > 0 ? index - 1 : 0].uuid : null
-      this.setActive(next_uuid)
+      const index = this.state.history.findIndex(item => item === cid)
+      this.state.history.splice(index, 1)
+      delete this.state.conversations[cid]
+      delete this.data[cid]
+      const next_uuid = this.state.history.length > 0 ? this.state.history[index > 0 ? index - 1 : 0] : null
+      this.state.active = next_uuid
+      setChatState(this.state)
+      setChatData(this.data)
     },
 
-    clearHistoryAndChat() {
-      this.$state = { ...defaultState() }
-      this.recordState()
+    clearConversations() {
+      this.state.active = null
+      this.state.history = []
+      this.state.conversations = {}
+      this.data = {}
+      setChatState(this.state)
+      setChatData(this.data)
     },
 
-    getHistory(uuid: number | null): Chat.History | null {
-      const index = this.history.findIndex(item => item.uuid === uuid)
-      return index > -1 ? this.history[index] : null
+    getDraftPrompt(cid: CID | null): string {
+      if (cid === null)
+        return ''
+      return this.state.conversations[cid].draftPrompt
     },
 
-    updateHistory(uuid: number | null, history: Partial<Chat.History>) {
-      const index = this.history.findIndex(item => item.uuid === uuid)
-      if (index === -1)
+    updateDraftPrompt(cid: CID | null, draftPrompt: string) {
+      if (cid === null)
         return
-      this.history[index] = { ...this.history[index], ...history }
-      this.recordState()
+      this.state.conversations[cid].draftPrompt = draftPrompt
+      setChatState(this.state)
     },
 
-    getChatUsingContext(uuid: number | null): boolean {
-      const index = this.chat.findIndex(item => item.uuid === uuid)
-      return index > -1 ? (this.chat[index].usingContext ?? true) : true
+    getUsingContext(cid: CID | null): boolean {
+      if (cid === null)
+        return true
+      return this.state.conversations[cid].usingContext
     },
 
-    toggleChatUsingContext(uuid: number | null) {
-      const index = this.chat.findIndex(item => item.uuid === uuid)
-      if (index === -1)
+    toggleUsingContext(cid: CID | null) {
+      if (cid === null)
         return
-      this.chat[index].usingContext = !(this.chat[index].usingContext ?? true)
-      this.recordState()
+      this.state.conversations[cid].usingContext = !this.state.conversations[cid].usingContext
+      setChatState(this.state)
     },
 
-    getChatMessages(uuid: number | null): Chat.Message[] {
-      const index = this.chat.findIndex(item => item.uuid === uuid)
-      return index > -1 ? this.chat[index].data : []
+    getTitle(cid: CID | null): string {
+      if (cid === null)
+        return ''
+      return this.data[cid].title
     },
 
-    clearChatMessages(uuid: number | null) {
-      const index = this.chat.findIndex(item => item.uuid === uuid)
-      if (index === -1)
+    setTitle(cid: CID | null, title: string) {
+      if (cid === null)
         return
-      this.chat[index].data = []
-      this.recordState()
+      this.data[cid].title = title
+      setChatData(this.data)
     },
 
-    getChatMessage(uuid: number | null, messageIndex: number): Chat.Message | null {
-      const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
-      if (chatIndex === -1)
+    getMessages(cid: CID | null): ChatData.Message[] {
+      if (cid === null)
+        return []
+      return this.data[cid].messages
+    },
+
+    clearMessages(cid: CID | null) {
+      if (cid === null)
+        return
+      this.data[cid].messages = []
+      setChatData(this.data)
+    },
+
+    getMessage(cid: CID | null, messageIndex: number): ChatData.Message | null {
+      if (cid === null)
         return null
-      return this.chat[chatIndex].data[messageIndex] ?? null
+      return this.data[cid].messages[messageIndex]
     },
 
-    addChatMessage(uuid: number | null, message: Chat.Message) {
-      const index = this.chat.findIndex(item => item.uuid === uuid)
-      if (index === -1)
+    addMessage(cid: CID | null, message: ChatData.Message) {
+      if (cid === null)
         return
-      this.chat[index].data.push(message)
-      if (this.history[index].title === t('chat.newChatTitle'))
-        this.history[index].title = message.text
-      this.recordState()
+      this.data[cid].messages.push(message)
+      if (this.data[cid].title === t('chat.newChatTitle'))
+        this.data[cid].title = message.text
+      setChatData(this.data)
     },
 
-    updateChatMessage(uuid: number | null, messageIndex: number, message: Partial<Chat.Message>) {
-      const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
-      if (chatIndex === -1 || this.chat[chatIndex].data[messageIndex] === undefined)
+    updateMessage(cid: CID | null, messageIndex: number, message: Partial<ChatData.Message>) {
+      if (cid === null)
         return
-      this.chat[chatIndex].data[messageIndex] = { ...this.chat[chatIndex].data[messageIndex], ...message }
-      this.recordState()
+      this.data[cid].messages[messageIndex] = { ...this.data[cid].messages[messageIndex], ...message }
+      setChatData(this.data)
     },
 
-    deleteChatMessage(uuid: number | null, messageIndex: number) {
-      const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
-      if (chatIndex === -1)
+    deleteMessage(cid: CID | null, messageIndex: number) {
+      if (cid === null)
         return
-      this.chat[chatIndex].data.splice(messageIndex, 1)
-      this.recordState()
+      this.data[cid].messages.splice(messageIndex, 1)
+      setChatData(this.data)
     },
 
-    getChatDraftPrompt(uuid: number | null): string {
-      const index = this.chat.findIndex(item => item.uuid === uuid)
-      return index > -1 ? (this.chat[index].draftPrompt ?? '') : ''
+    import(state: Chat) {
+      this.state = state.state
+      this.data = state.data
+      setChatState(this.state)
+      setChatData(this.data)
     },
 
-    updateChatDraftPrompt(uuid: number | null, draftPrompt: string) {
-      const index = this.chat.findIndex(item => item.uuid === uuid)
-      if (index === -1)
-        return
-      this.chat[index].draftPrompt = draftPrompt
-      this.recordState()
+    export(): Chat {
+      return this.$state
     },
   },
 })
