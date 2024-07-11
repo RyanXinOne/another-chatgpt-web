@@ -38,7 +38,8 @@ const usingContext = computed<boolean>(() => chatStore.getChatUsingContext(uuid.
 
 const prompt = ref<string>('')
 
-const loading = ref<boolean>(false)
+const loadingIndex = ref<number>(-1)
+
 const inputRef = ref<Ref | null>(null)
 
 const debouncedSaveDraft = debounce((uuid: number | null, value: string) => {
@@ -56,15 +57,11 @@ watch(uuid, (newVal, oldVal) => {
 })
 
 onMounted(() => {
-  dataSources.value.forEach((item, index) => {
-    if (item.loading)
-      chatStore.updateChatMessage(uuid.value, index, { loading: false })
-  })
   resetState()
 })
 
 function resetState() {
-  if (loading.value) {
+  if (loadingIndex.value > -1) {
     controller.abort()
   }
   scrollToBottom()
@@ -112,8 +109,6 @@ function buildContextMessages(uuid: number | null, startIndex: number, endIndex:
 }
 
 async function chatProcess(uuid: number | null, index: number, usingContext: boolean, regenerate: boolean = false) {
-  let messages: [PostMessage] = buildContextMessages(uuid, usingContext ? 0 : index - 1, index)
-
   chatStore.updateChatMessage(
     uuid,
     index,
@@ -121,12 +116,12 @@ async function chatProcess(uuid: number | null, index: number, usingContext: boo
       dateTime: new Date().toLocaleString(),
       text: t('chat.thinking'),
       inversion: false,
-      loading: true,
       error: false,
     },
   )
+  loadingIndex.value = index
 
-  loading.value = true
+  let messages: [PostMessage] = buildContextMessages(uuid, usingContext ? 0 : index - 1, index)
   controller = new AbortController()
 
   try {
@@ -204,8 +199,7 @@ async function chatProcess(uuid: number | null, index: number, usingContext: boo
       scrollToBottomIfAtBottom()
   }
   finally {
-    chatStore.updateChatMessage(uuid, index, { loading: false })
-    loading.value = false
+    loadingIndex.value = -1
   }
 }
 
@@ -215,7 +209,7 @@ async function onConversation() {
     prompt.value = ''
     return
   }
-  if (loading.value)
+  if (loadingIndex.value > -1)
     return
   if (!prompt.value || prompt.value.trim() === '')
     return
@@ -242,7 +236,6 @@ async function onConversation() {
       dateTime: new Date().toLocaleString(),
       text: t('chat.thinking'),
       inversion: false,
-      loading: true,
       error: false,
     },
   )
@@ -253,7 +246,7 @@ async function onConversation() {
 }
 
 async function onRegenerate(messageIndex: number) {
-  if (loading.value)
+  if (loadingIndex.value > -1)
     return
   if (!dataSources.value[messageIndex - 1]?.inversion)
     return
@@ -274,7 +267,7 @@ function handleSubmit() {
 }
 
 function handleExport() {
-  if (loading.value)
+  if (loadingIndex.value > -1)
     return
 
   const d = dialog.warning({
@@ -312,7 +305,7 @@ function handleExport() {
 }
 
 function handleDelete(index: number) {
-  if (loading.value)
+  if (loadingIndex.value > -1)
     return
 
   dialog.warning({
@@ -327,7 +320,7 @@ function handleDelete(index: number) {
 }
 
 function handleClear() {
-  if (loading.value)
+  if (loadingIndex.value > -1)
     return
 
   dialog.warning({
@@ -396,7 +389,7 @@ const placeholder = computed(() => {
 })
 
 const buttonDisabled = computed(() => {
-  return loading.value || !prompt.value || prompt.value.trim() === ''
+  return loadingIndex.value > -1 || !prompt.value || prompt.value.trim() === ''
 })
 
 const footerClass = computed(() => {
@@ -436,14 +429,14 @@ const footerClass = computed(() => {
                   :text="item.text"
                   :inversion="item.inversion"
                   :error="item.error"
-                  :loading="item.loading"
+                  :loading="loadingIndex === index"
                   :uuid="uuid"
                   :index="index"
                   @regenerate="onRegenerate(index)"
                   @delete="handleDelete(index)"
                 />
                 <div class="sticky bottom-0 left-0 flex justify-center">
-                  <NButton v-if="loading" type="warning" @click="handleStop">
+                  <NButton v-if="loadingIndex > -1" type="warning" @click="handleStop">
                     <template #icon>
                       <SvgIcon icon="ri:stop-circle-line" />
                     </template>
