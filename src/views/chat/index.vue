@@ -14,6 +14,7 @@ import { useChatStore, usePromptStore, useSettingStore } from '@/store'
 import { fetchChatAPIProcess } from '@/api'
 import type { PostMessage } from '@/api/helper'
 import { t } from '@/locales'
+import { debounce } from '@/utils/functions/debounce'
 
 let controller = new AbortController()
 
@@ -40,8 +41,12 @@ const prompt = ref<string>('')
 const loading = ref<boolean>(false)
 const inputRef = ref<Ref | null>(null)
 
+const debouncedSaveDraft = debounce((uuid: number | null, value: string) => {
+  chatStore.updateChatDraftPrompt(uuid, value)
+}, 500)
+
 watch(prompt, (value) => {
-  chatStore.updateChatDraftPrompt(uuid.value, value)
+  debouncedSaveDraft(uuid.value, value)
 })
 
 watch(uuid, (newVal, oldVal) => {
