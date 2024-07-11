@@ -14,6 +14,7 @@ import { useChatStore, usePromptStore, useSettingStore } from '@/store'
 import { fetchChatAPIProcess } from '@/api'
 import type { PostMessage } from '@/api/helper'
 import { t } from '@/locales'
+import { debounce } from '@/utils/functions/debounce'
 
 let controller = new AbortController()
 
@@ -40,8 +41,12 @@ const prompt = ref<string>('')
 const loading = ref<boolean>(false)
 const inputRef = ref<Ref | null>(null)
 
+const debouncedSaveDraft = debounce((cid: CID | null, value: string) => {
+  chatStore.updateDraftPrompt(cid, value)
+}, 500)
+
 watch(prompt, (value) => {
-  chatStore.updateDraftPrompt(cid.value, value)
+  debouncedSaveDraft(cid.value, value)
 })
 
 watch(cid, (newVal, oldVal) => {
@@ -64,8 +69,8 @@ function resetState() {
   }
   scrollToBottom()
   prompt.value = chatStore.getDraftPrompt(cid.value)
-  if (inputRef.value && !isMobile.value)
-    inputRef.value?.focus()
+  if (!isMobile.value)
+    inputRef.value.focus()
 }
 
 function buildContextMessages(cid: CID | null, startIndex: number, endIndex: number, maxTokens: number = 128000): [PostMessage] {
