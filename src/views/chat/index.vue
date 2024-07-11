@@ -35,18 +35,38 @@ const dataSources = computed(() => chatStore.getChatMessages(uuid.value))
 
 const usingContext = computed<boolean>(() => chatStore.getChatUsingContext(uuid.value))
 
-const prompt = computed<string>({
-  get: () => chatStore.getChatDraftPrompt(uuid.value),
-  set: (value) => {
-    chatStore.updateChatDraftPrompt(uuid.value, value)
-  },
-})
+const prompt = ref<string>('')
 
 const loading = ref<boolean>(false)
 const inputRef = ref<Ref | null>(null)
 
-// 使用storeToRefs，保证store修改后，联想部分能够重新渲染
-const { promptList: promptTemplate } = storeToRefs<any>(promptStore)
+watch(prompt, (value) => {
+  chatStore.updateChatDraftPrompt(uuid.value, value)
+})
+
+watch(uuid, (newVal, oldVal) => {
+  if (oldVal !== null) {
+    resetState()
+  }
+})
+
+onMounted(() => {
+  dataSources.value.forEach((item, index) => {
+    if (item.loading)
+      chatStore.updateChatMessage(uuid.value, index, { loading: false })
+  })
+  resetState()
+})
+
+function resetState() {
+  if (loading.value) {
+    controller.abort()
+  }
+  scrollToBottom()
+  prompt.value = chatStore.getChatDraftPrompt(uuid.value)
+  if (!isMobile.value)
+    inputRef.value.focus()
+}
 
 function buildContextMessages(uuid: number | null, startIndex: number, endIndex: number, maxTokens: number = 128000): [PostMessage] {
   const sourceMessages = chatStore.getChatMessages(uuid)
@@ -195,12 +215,12 @@ async function onConversation() {
   if (!prompt.value || prompt.value.trim() === '')
     return
 
-  const messageUuid = uuid.value
-  const messageIndex = dataSources.value.length + 1
-
-  if (!messageUuid) {
+  if (uuid.value === null) {
     chatStore.addHistoryAndChat()
   }
+
+  const messageUuid = uuid.value
+  const messageIndex = dataSources.value.length + 1
 
   chatStore.addChatMessage(
     messageUuid,
@@ -335,14 +355,8 @@ function handleStop() {
   controller.abort()
 }
 
-function resetState() {
-  if (loading.value) {
-    controller.abort()
-  }
-  scrollToBottom()
-  if (inputRef.value && !isMobile.value)
-    inputRef.value?.focus()
-}
+// 使用storeToRefs，保证store修改后，联想部分能够重新渲染
+const { promptList: promptTemplate } = storeToRefs<any>(promptStore)
 
 // 可优化部分
 // 搜索选项计算，这里使用value作为索引项，所以当出现重复value时渲染异常(多项同时出现选中效果)
@@ -386,16 +400,6 @@ const footerClass = computed(() => {
     classes = ['sticky', 'left-0', 'bottom-0', 'right-0', 'p-2', 'pr-3', 'overflow-hidden']
   return classes
 })
-
-onMounted(() => {
-  dataSources.value.forEach((item, index) => {
-    if (item.loading)
-      chatStore.updateChatMessage(uuid.value, index, { loading: false })
-  })
-  resetState()
-})
-
-watch(uuid, resetState)
 </script>
 
 <template>
