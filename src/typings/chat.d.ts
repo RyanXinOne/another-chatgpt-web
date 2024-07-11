@@ -31,7 +31,6 @@ declare namespace ChatData {
     text: string
     inversion: boolean
     error?: boolean
-    loading?: boolean
   }
 }
 
@@ -82,6 +81,5 @@ declare namespace LegacyChat {
     text: string
     inversion?: boolean
     error?: boolean
-    loading?: boolean
   }
 }
