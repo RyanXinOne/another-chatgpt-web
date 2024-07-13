@@ -34,7 +34,7 @@ const filteredList = computed(() => {
         </div>
       </template>
       <template v-else>
-        <div v-for="(item, index) of filteredList" :key="index">
+        <div v-for="item of filteredList" :key="item.uuid">
           <Entry :uuid="item.uuid" :title="item.title" />
         </div>
       </template>

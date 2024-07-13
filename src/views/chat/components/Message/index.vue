@@ -11,13 +11,13 @@ import { copyToClip } from '@/utils/copy'
 import { useChatStore } from '@/store'
 
 interface Props {
-  dateTime?: string
-  text?: string
+  uuid: number | null
+  index: number
+  dateTime: string
+  text: string
   inversion?: boolean
   error?: boolean
   loading?: boolean
-  uuid: number | null
-  index: number
 }
 
 interface Emit {
@@ -39,13 +39,13 @@ const message = useMessage()
 
 const textRef = ref<HTMLElement>()
 
+const messageRef = ref<HTMLElement>()
+
 const asRawText = ref(props.inversion)
 
 const editing = ref(false)
 
 const editingText = ref('')
-
-const messageRef = ref<HTMLElement>()
 
 const options = computed(() => {
   const common = [
