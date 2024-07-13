@@ -1,7 +1,7 @@
 <script setup lang='ts'>
 import type { CSSProperties } from 'vue'
 import { computed, ref, watch } from 'vue'
-import { NButton, NLayoutSider, useDialog } from 'naive-ui'
+import { NButton, NInput, NLayoutSider, useDialog } from 'naive-ui'
 import List from './List/index.vue'
 import Footer from './Footer/index.vue'
 import { useAppStore, useChatStore } from '@/store'
@@ -18,6 +18,10 @@ const { isMobile } = useBasicLayout()
 const show = ref(false)
 
 const collapsed = computed(() => appStore.siderCollapsed)
+
+const searchInput = ref<string>('')
+
+const searchText = computed<string>(() => searchInput.value.trim().toLowerCase())
 
 function handleAdd() {
   chatStore.addConversation()
@@ -93,8 +97,15 @@ watch(
             {{ $t('chat.newChatButton') }}
           </NButton>
         </div>
+        <div class="px-4 pb-4">
+          <NInput v-model:value="searchInput" placeholder="Search" size="small" round clearable>
+            <template #prefix>
+              <SvgIcon icon="ri:search-line" :class="{ 'text-[#4b9e5f]': searchText.length }" class="transition-colors" />
+            </template>
+          </NInput>
+        </div>
         <div class="flex-1 min-h-0 pb-4 overflow-hidden">
-          <List />
+          <List :searchText="searchText" />
         </div>
         <div class="flex items-center p-4 space-x-4">
           <div class="flex-1">

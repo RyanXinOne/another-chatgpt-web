@@ -168,7 +168,7 @@ onUnmounted(() => {
         </div>
         <div v-else class="whitespace-pre-wrap" v-text="text" />
       </div>
-      <NInput v-else class="editing-box" ref="inputRef" v-model:value="editingText" @input="emit('textEdited', editingText)" type="textarea" :autosize="{ minRows: 1 }" />
+      <NInput v-else class="editing-box min-w-8" ref="inputRef" v-model:value="editingText" @input="emit('textEdited', editingText)" type="textarea" placeholder="" :autosize="{ minRows: 1 }" />
     </div>
   </div>
 </template>

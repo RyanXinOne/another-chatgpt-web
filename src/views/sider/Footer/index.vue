@@ -1,8 +1,7 @@
 <script setup lang='ts'>
-import { defineAsyncComponent, ref } from 'vue'
+import { ref } from 'vue'
 import { HoverButton, SvgIcon, UserAvatar } from '@/components/common'
-
-const Setting = defineAsyncComponent(() => import('@/components/common/Setting/index.vue'))
+import Setting from '@/components/common/Setting/index.vue'
 
 const show = ref(false)
 </script>
@@ -19,6 +18,6 @@ const show = ref(false)
       </span>
     </HoverButton>
 
-    <Setting v-if="show" v-model:visible="show" />
+    <Setting v-model:visible="show" />
   </footer>
 </template>

@@ -421,28 +421,26 @@ const footerClass = computed(() => {
               </div>
             </template>
             <template v-else>
-              <div>
+              <div v-for="(item, index) of dataSources" :key="item.dateTime">
                 <Message
-                  v-for="(item, index) of dataSources"
-                  :key="index"
+                  :cid="cid"
+                  :index="index"
                   :date-time="item.dateTime"
                   :text="item.text"
                   :inversion="item.inversion"
                   :error="item.error"
                   :loading="loadingIndex === index"
-                  :cid="cid"
-                  :index="index"
                   @regenerate="onRegenerate(index)"
                   @delete="handleDelete(index)"
                 />
-                <div class="sticky bottom-0 left-0 flex justify-center">
-                  <NButton v-if="loadingIndex > -1" type="warning" @click="handleStop">
-                    <template #icon>
-                      <SvgIcon icon="ri:stop-circle-line" />
-                    </template>
-                    {{ t('common.stopResponding') }}
-                  </NButton>
-                </div>
+              </div>
+              <div class="sticky bottom-0 left-0 flex justify-center">
+                <NButton v-if="loadingIndex > -1" type="warning" @click="handleStop">
+                  <template #icon>
+                    <SvgIcon icon="ri:stop-circle-line" />
+                  </template>
+                  {{ t('common.stopResponding') }}
+                </NButton>
               </div>
             </template>
           </div>
