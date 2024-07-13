@@ -86,7 +86,7 @@ function handleCancel() {
       @keydown.enter="handleSave"
       @keydown.esc="handleCancel"
       />
-      <span v-else>{{ title }}</span>
+      <span v-else :title="title">{{ title }}</span>
     </div>
     <div v-if="isActive" class="absolute z-10 flex visible right-1">
       <template v-if="editing">
