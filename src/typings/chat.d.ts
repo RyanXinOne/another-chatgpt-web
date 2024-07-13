@@ -1,4 +1,5 @@
 type CID = string
+type MID = string
 
 interface Chat {
   state: ChatState.Main
@@ -27,6 +28,7 @@ declare namespace ChatData {
   }
 
   interface Message {
+    mid: MID
     dateTime: string
     text: string
     inversion: boolean

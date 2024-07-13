@@ -218,31 +218,15 @@ async function onConversation() {
     chatStore.addConversation()
   }
 
-  const messageUuid = cid.value
+  const messageCid = cid.value
   const messageIndex = dataSources.value.length + 1
 
-  chatStore.addMessage(
-    messageUuid,
-    {
-      dateTime: new Date().toLocaleString(),
-      text: prompt.value,
-      inversion: true,
-      error: false,
-    },
-  )
-  chatStore.addMessage(
-    messageUuid,
-    {
-      dateTime: new Date().toLocaleString(),
-      text: t('chat.thinking'),
-      inversion: false,
-      error: false,
-    },
-  )
+  chatStore.addMessage(messageCid, prompt.value, true)
+  chatStore.addMessage(messageCid, t('chat.thinking'), false)
   scrollToBottom()
   prompt.value = ''
 
-  await chatProcess(messageUuid, messageIndex, usingContext.value)
+  await chatProcess(messageCid, messageIndex, usingContext.value)
 }
 
 async function onRegenerate(messageIndex: number) {
@@ -421,7 +405,7 @@ const footerClass = computed(() => {
               </div>
             </template>
             <template v-else>
-              <div v-for="(item, index) of dataSources" :key="item.dateTime">
+              <div v-for="(item, index) of dataSources" :key="item.mid">
                 <Message
                   :cid="cid"
                   :index="index"

@@ -39,8 +39,8 @@ export const useChatStore = defineStore('chat-store', {
       this.state.history.splice(index, 1)
       delete this.state.conversations[cid]
       delete this.data[cid]
-      const next_uuid = this.state.history.length > 0 ? this.state.history[index > 0 ? index - 1 : 0] : null
-      this.state.active = next_uuid
+      const next_cid = this.state.history.length > 0 ? this.state.history[index > 0 ? index - 1 : 0] : null
+      this.state.active = next_cid
       setChatState(this.state)
       setChatData(this.data)
     },
@@ -112,9 +112,16 @@ export const useChatStore = defineStore('chat-store', {
       return this.data[cid].messages[messageIndex]
     },
 
-    addMessage(cid: CID | null, message: ChatData.Message) {
+    addMessage(cid: CID | null, text: string, inversion: boolean) {
       if (cid === null)
         return
+      const message: ChatData.Message = {
+        mid: uuidv4(),
+        dateTime: new Date().toISOString(),
+        text,
+        inversion,
+        error: false,
+      }
       this.data[cid].messages.push(message)
       if (this.data[cid].title === t('chat.newChatTitle'))
         this.data[cid].title = message.text
