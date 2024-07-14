@@ -22,6 +22,11 @@ export const useChatStore = defineStore('chat-store', {
       setChatState(this.state)
     },
 
+    setHistory(history: CID[]) {
+      this.state.history = history
+      setChatState(this.state)
+    },
+
     addConversation() {
       const cid: CID = uuidv4()
       this.state.active = cid

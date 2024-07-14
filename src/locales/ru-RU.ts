@@ -27,6 +27,7 @@ export default {
     verify: 'Проверить',
     unauthorizedTips: 'Не авторизован, сначала подтвердите свою личность.',
     stopResponding: 'Прекращение отклика',
+    search: 'Поиск',
   },
   chat: {
     newChatButton: 'Новый чат',

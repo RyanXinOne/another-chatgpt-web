@@ -27,6 +27,7 @@ export default {
     verify: 'Xác minh',
     unauthorizedTips: 'Không được ủy quyền, vui lòng xác minh trước.',
     stopResponding: 'Ngừng phản hồi',
+    search: 'Tìm kiếm',
   },
   chat: {
     newChatButton: 'Tạo hội thoại',

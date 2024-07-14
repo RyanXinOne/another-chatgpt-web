@@ -23,6 +23,8 @@ const searchInput = ref<string>('')
 
 const searchText = computed<string>(() => searchInput.value.trim().toLowerCase())
 
+const ordering = ref<boolean>(false)
+
 function handleAdd() {
   chatStore.addConversation()
   if (isMobile.value)
@@ -98,22 +100,25 @@ watch(
           </NButton>
         </div>
         <div class="px-4 pb-4">
-          <NInput v-model:value="searchInput" placeholder="Search" size="small" round clearable>
+          <NInput v-model:value="searchInput" :placeholder="t('common.search')" size="small" round clearable :disabled="ordering">
             <template #prefix>
               <SvgIcon icon="ri:search-line" :class="{ 'text-[#4b9e5f]': searchText.length }" class="transition-colors" />
             </template>
           </NInput>
         </div>
-        <div class="flex-1 min-h-0 pb-4 overflow-hidden">
-          <List :searchText="searchText" />
+        <div class="flex-1 min-h-0 pb-2 overflow-hidden">
+          <List :searchText="searchText" :ordering="ordering" />
         </div>
-        <div class="flex items-center p-4 space-x-4">
+        <div class="flex items-center p-4 space-x-2">
+          <NButton size="small" :type="ordering ? 'success' : 'default'" @click="ordering = !ordering" :disabled="searchText.length > 0">
+            <SvgIcon icon="ri:order-play-line" />
+          </NButton>
           <div class="flex-1">
-            <NButton block @click="show = true">
+            <NButton size="small" block @click="show = true">
               {{ $t('store.siderButton') }}
             </NButton>
           </div>
-          <NButton @click="handleClearAll">
+          <NButton size="small" @click="handleClearAll">
             <SvgIcon icon="ri:close-circle-line" />
           </NButton>
         </div>
