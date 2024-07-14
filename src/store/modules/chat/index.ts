@@ -29,15 +29,16 @@ export const useChatStore = defineStore('chat-store', {
     },
 
     deleteHistoryAndChat(uuid: number | null) {
-      const index = this.history.findIndex(item => item.uuid === uuid)
-      if (index === -1)
+      const historyIndex = this.history.findIndex(item => item.uuid === uuid)
+      const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
+      if (historyIndex === -1 || chatIndex === -1)
         return
 
-      this.history.splice(index, 1)
-      this.chat.splice(index, 1)
+      this.history.splice(historyIndex, 1)
+      this.chat.splice(chatIndex, 1)
       this.recordState()
 
-      const next_uuid = this.history.length > 0 ? this.history[index > 0 ? index - 1 : 0].uuid : null
+      const next_uuid = this.history.length > 0 ? this.history[historyIndex > 0 ? historyIndex - 1 : 0].uuid : null
       this.setActive(next_uuid)
     },
 
@@ -93,12 +94,13 @@ export const useChatStore = defineStore('chat-store', {
     },
 
     addChatMessage(uuid: number | null, message: Chat.Message) {
-      const index = this.chat.findIndex(item => item.uuid === uuid)
-      if (index === -1)
+      const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
+      const historyIndex = this.history.findIndex(item => item.uuid === uuid)
+      if (chatIndex === -1 || historyIndex === -1)
         return
-      this.chat[index].data.push(message)
-      if (this.history[index].title === t('chat.newChatTitle'))
-        this.history[index].title = message.text
+      this.chat[chatIndex].data.push(message)
+      if (this.history[historyIndex].title === t('chat.newChatTitle'))
+        this.history[historyIndex].title = message.text
       this.recordState()
     },
 
