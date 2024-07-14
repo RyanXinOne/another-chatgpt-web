@@ -24,6 +24,10 @@ This project has the following new features standing on the source project [chat
 
 [✓] Conversation-wise draft prompt and context state
 
+[✓] Search chat list by title
+
+[✓] Drag to reorder chat list
+
 ### Backend
 
 [✓] Built with official [openai-node](https://github.com/openai/openai-node) API
