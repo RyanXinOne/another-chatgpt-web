@@ -15,6 +15,11 @@ export const useChatStore = defineStore('chat-store', {
       this.recordState()
     },
 
+    setHistory(history: Chat.History[]) {
+      this.history = history
+      this.recordState()
+    },
+
     addHistoryAndChat() {
       const uuid = Date.now()
       this.history.unshift({ uuid, title: t('chat.newChatTitle') })

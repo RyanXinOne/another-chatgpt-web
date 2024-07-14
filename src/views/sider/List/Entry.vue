@@ -10,6 +10,7 @@ import { debounce } from '@/utils/functions/debounce'
 interface Props {
   uuid: number
   title: string
+  ordering?: boolean
 }
 
 const props = defineProps<Props>()
@@ -27,7 +28,7 @@ const inputRef = ref<Ref | null>(null)
 
 const isActive = computed<boolean>(() => chatStore.active === props.uuid)
 
-watch(() => isActive.value, (value) => {
+watch(isActive, (value) => {
   if (!value && editing.value)
     editing.value = false
 })
@@ -70,7 +71,7 @@ function handleCancel() {
 </script>
 
 <template>
-  <a
+  <a v-if="!ordering"
   class="relative flex items-center gap-3 px-3 py-3 break-all border rounded-md cursor-pointer hover:bg-neutral-100 group dark:border-neutral-800 dark:hover:bg-[#24272e]"
   :class="isActive && ['border-[#4b9e5f]', 'bg-neutral-100', 'text-[#4b9e5f]', 'dark:bg-[#24272e]', 'dark:border-[#4b9e5f]', 'pr-14']"
   @click="handleSelect"
@@ -112,4 +113,14 @@ function handleCancel() {
       </template>
     </div>
   </a>
+  <div v-else
+  class="relative flex items-center gap-3 px-3 py-3 break-all border rounded-md hover:bg-neutral-100 group dark:border-neutral-800 dark:hover:bg-[#24272e]"
+  :class="isActive && ['border-[#4b9e5f]', 'bg-neutral-100', 'text-[#4b9e5f]', 'dark:bg-[#24272e]', 'dark:border-[#4b9e5f]']">
+    <span>
+      <SvgIcon icon="ri:draggable" />
+    </span>
+    <div class="relative flex-1 overflow-hidden break-all text-ellipsis whitespace-nowrap">
+      <span :title="title">{{ title }}</span>
+    </div>
+  </div>
 </template>

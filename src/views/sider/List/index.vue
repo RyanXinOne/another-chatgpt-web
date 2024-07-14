@@ -1,43 +1,48 @@
 <script setup lang='ts'>
-import { computed } from 'vue'
-import { NScrollbar } from 'naive-ui'
+import { computed, watch } from 'vue'
+import { useDragAndDrop } from 'vue-fluid-dnd'
 import Entry from './Entry.vue'
 import { SvgIcon } from '@/components/common'
 import { useChatStore } from '@/store'
 
 interface Props {
   searchText: string
+  ordering: boolean
 }
 
 const props = defineProps<Props>()
 
 const chatStore = useChatStore()
 
-const dataSources = computed(() => chatStore.history)
-
 const filteredList = computed(() => {
   if (props.searchText.length === 0)
-    return dataSources.value
+    return chatStore.history
 
-  return dataSources.value.filter((item) => item.title.toLowerCase().includes(props.searchText))
+  return chatStore.history.filter((item) => item.title.toLowerCase().includes(props.searchText))
 })
 
+const orderingList = computed(() => chatStore.history)
+const { parent } = useDragAndDrop(orderingList, {
+  isDraggable: (e) => props.ordering,
+})
+
+watch(orderingList, (value) => {
+  chatStore.setHistory(value)
+}, { deep: true })
 </script>
 
 <template>
-  <NScrollbar class="px-4">
-    <div class="flex flex-col gap-2 text-sm">
-      <template v-if="!filteredList.length">
-        <div class="flex flex-col items-center mt-4 text-center text-neutral-300">
-          <SvgIcon icon="ri:inbox-line" class="mb-2 text-3xl" />
-          <span>{{ $t('common.noData') }}</span>
-        </div>
-      </template>
-      <template v-else>
-        <div v-for="item of filteredList" :key="item.uuid">
-          <Entry :uuid="item.uuid" :title="item.title" />
-        </div>
-      </template>
-    </div>
-  </NScrollbar>
+  <div ref="parent" class="flex flex-col gap-2 pb-1 px-3 mx-1 h-full overflow-auto text-sm">
+    <template v-if="!ordering && !filteredList.length">
+      <div class="flex flex-col items-center mt-4 text-center text-neutral-300">
+        <SvgIcon icon="ri:inbox-line" class="mb-2 text-3xl" />
+        <span>{{ $t('common.noData') }}</span>
+      </div>
+    </template>
+    <template v-else>
+      <div v-for="(item, index) of (ordering ? orderingList : filteredList)" :key="(ordering ? 'o-' : '') + item.uuid" :index="index">
+        <Entry :uuid="item.uuid" :title="item.title" :ordering="ordering" />
+      </div>
+    </template>
+  </div>
 </template>

@@ -47,6 +47,9 @@ importers:
       vue:
         specifier: ^3.4.31
         version: 3.4.31(typescript@4.9.5)
+      vue-fluid-dnd:
+        specifier: ^0.7.0
+        version: 0.7.0(vue@3.4.31(typescript@4.9.5))
       vue-i18n:
         specifier: ^9.13.1
         version: 9.13.1(vue@3.4.31(typescript@4.9.5))
@@ -2951,6 +2954,11 @@ packages:
     peerDependenciesMeta:
       '@vue/composition-api':
         optional: true
+
+  vue-fluid-dnd@0.7.0:
+    resolution: {integrity: sha512-5I2dJR8jCckQPFvseuJ7I0o+AkCMrGlsEDo8aexCqjxYZrWSPdDdsKvY7fsYQEiJNFEquHlpWeHhMgZO8uBD8g==}
+    peerDependencies:
+      vue: '>=3.4.0'
 
   vue-i18n@9.13.1:
     resolution: {integrity: sha512-mh0GIxx0wPtPlcB1q4k277y0iKgo25xmDPWioVVYanjPufDBpvu5ySTjP5wOrSvlYQ2m1xI+CFhGdauv/61uQg==}
@@ -6296,6 +6304,10 @@ snapshots:
       vue: 3.4.31(typescript@4.9.5)
 
   vue-demi@0.14.8(vue@3.4.31(typescript@4.9.5)):
+    dependencies:
+      vue: 3.4.31(typescript@4.9.5)
+
+  vue-fluid-dnd@0.7.0(vue@3.4.31(typescript@4.9.5)):
     dependencies:
       vue: 3.4.31(typescript@4.9.5)
 
