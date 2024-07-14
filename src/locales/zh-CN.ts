@@ -27,6 +27,7 @@ export default {
     verify: '验证',
     unauthorizedTips: '未经授权，请先进行验证。',
     stopResponding: '停止响应',
+    search: '搜索',
   },
   chat: {
     newChatButton: '新建聊天',

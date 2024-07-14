@@ -27,6 +27,7 @@ export default {
     verify: '驗證',
     unauthorizedTips: '未經授權，請先進行驗證。',
     stopResponding: '停止回應',
+    search: '搜尋',
   },
   chat: {
     newChatButton: '新增對話',

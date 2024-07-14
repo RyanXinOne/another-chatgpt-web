@@ -100,7 +100,7 @@ watch(
           </NButton>
         </div>
         <div class="px-4 pb-4">
-          <NInput v-model:value="searchInput" placeholder="Search" size="small" round clearable :disabled="ordering">
+          <NInput v-model:value="searchInput" :placeholder="t('common.search')" size="small" round clearable :disabled="ordering">
             <template #prefix>
               <SvgIcon icon="ri:search-line" :class="{ 'text-[#4b9e5f]': searchText.length }" class="transition-colors" />
             </template>

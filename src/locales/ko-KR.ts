@@ -27,6 +27,7 @@ export default {
     verify: '검증',
     unauthorizedTips: '인증되지 않았습니다. 먼저 확인하십시오.',
     stopResponding: '응답 중지',
+    search: '검색',
   },
   chat: {
     newChatButton: '새로운 채팅',
