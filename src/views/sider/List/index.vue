@@ -22,9 +22,8 @@ const filteredList = computed(() => {
 })
 
 const orderingList = computed(() => chatStore.history)
-const { parent } = useDragAndDrop(orderingList, {
-  isDraggable: (e) => props.ordering,
-})
+// @ts-ignore
+const { parent } = useDragAndDrop(orderingList)
 
 watch(orderingList, (value) => {
   chatStore.setHistory(value)
@@ -32,7 +31,7 @@ watch(orderingList, (value) => {
 </script>
 
 <template>
-  <div ref="parent" class="flex flex-col gap-2 pb-1 px-3 mx-1 h-full overflow-auto text-sm">
+  <div :ref="ordering ? 'parent' : undefined" class="flex flex-col gap-2 pb-1 px-3 mx-1 h-full overflow-auto text-sm">
     <template v-if="!ordering && !filteredList.length">
       <div class="flex flex-col items-center mt-4 text-center text-neutral-300">
         <SvgIcon icon="ri:inbox-line" class="mb-2 text-3xl" />
@@ -40,7 +39,7 @@ watch(orderingList, (value) => {
       </div>
     </template>
     <template v-else>
-      <div v-for="(item, index) of (ordering ? orderingList : filteredList)" :key="(ordering ? 'o-' : '') + item.uuid" :index="index">
+      <div v-for="(item, index) of (ordering ? orderingList : filteredList)" :key="item.uuid" :index="index">
         <Entry :uuid="item.uuid" :title="item.title" :ordering="ordering" />
       </div>
     </template>
