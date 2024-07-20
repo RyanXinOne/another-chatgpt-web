@@ -1,6 +1,6 @@
 import type { ChatCompletionChunk } from 'openai/src/resources/chat'
 
-export type Model = 'gpt-4o' | 'gpt-3.5-turbo'
+export type Model = 'gpt-4o' | 'gpt-4o-mini'
 
 export interface Message {
   role: 'system' | 'user' | 'assistant'

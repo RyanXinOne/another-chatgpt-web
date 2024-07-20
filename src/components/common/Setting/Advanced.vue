@@ -20,7 +20,7 @@ const model = computed({
 
 const modelOptions: { label: string; key: Model; value: Model }[] = [
   { label: 'gpt-4o', key: 'gpt-4o', value: 'gpt-4o' },
-  { label: 'gpt-3.5-turbo', key: 'gpt-3.5-turbo', value: 'gpt-3.5-turbo' },
+  { label: 'gpt-4o-mini', key: 'gpt-4o-mini', value: 'gpt-4o-mini' },
 ]
 
 const systemMessage = ref(settingStore.systemMessage)

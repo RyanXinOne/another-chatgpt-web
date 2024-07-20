@@ -1,6 +1,6 @@
 import * as dotenv from 'dotenv'
 import OpenAI from 'openai'
-import { encoding_for_model } from 'tiktoken'
+import { get_encoding } from 'tiktoken'
 import type { CompletionUsage } from 'openai/src/resources/completions'
 import { sendResponse } from '../utils'
 import { isNotEmptyString } from '../utils/is'
@@ -20,14 +20,14 @@ const model_contexts: { [model in Model]: ModelContext } = {
     max_context_tokens: 127000,
     max_response_tokens: 4000,
   },
-  'gpt-3.5-turbo': {
-    max_context_tokens: 16000,
-    max_response_tokens: 4000,
+  'gpt-4o-mini': {
+    max_context_tokens: 127000,
+    max_response_tokens: 16000,
   },
 }
 
-function filterMessagesByTokenCount(messages: Message[], model: Model, max_tokens?: number): { messages: Message[]; estimated_tokens: number } {
-  const encoding = encoding_for_model(model)
+function filterMessagesByTokenCount(messages: Message[], max_tokens?: number): { messages: Message[]; estimated_tokens: number } {
+  const encoding = get_encoding('cl100k_base')
   const tokens_per_message = 3
   const count_message_token = (message: Message) => {
     let tokens = tokens_per_message
@@ -59,9 +59,12 @@ const openai = new OpenAI({
 
 export async function chatReplyProcess(options: RequestOptions) {
   let { model, messages, temperature, top_p, user, callback } = options
+  if (!(model in model_contexts)) {
+    return sendResponse({ type: 'Fail', message: 'Invalid model requested.' })
+  }
   const { max_context_tokens, max_response_tokens } = model_contexts[model]
   let estimated_tokens: number
-  ({ messages, estimated_tokens } = filterMessagesByTokenCount(messages, model, max_context_tokens - max_response_tokens))
+  ({ messages, estimated_tokens } = filterMessagesByTokenCount(messages, max_context_tokens - max_response_tokens))
   if (DEBUG_MODE) {
     global.console.log('-'.repeat(30))
     global.console.log(`Time: ${new Date().toISOString()}`)
