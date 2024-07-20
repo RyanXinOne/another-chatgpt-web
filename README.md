@@ -140,11 +140,11 @@ User usage logs would be generated automatically under `service/logs/`, for exam
 {
   "2024_06_28": {
     "user1": {
-      "gpt-3.5-turbo": {
+      "gpt-4o": {
         "prompt_tokens": 768,
         "completion_tokens": 266
       },
-      "gpt-4o": {
+      "gpt-4o-mini": {
         "prompt_tokens": 324,
         "completion_tokens": 95
       }
