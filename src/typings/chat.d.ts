@@ -1,26 +1,37 @@
-declare namespace Chat {
-  interface State {
-    active: number | null
-    history: History[]
-    chat: Chat[]
+type CID = string
+type MID = string
+
+interface Chat {
+  state: ChatState.Main
+  data: ChatData.Main
+}
+
+declare namespace ChatState {
+  interface Main {
+    active: CID | null
+    history: CID[]
+    conversations: { [key: CID]: ChatState.Conversation }
   }
 
-  interface History {
-    uuid: number
+  interface Conversation {
+    draftPrompt: string
+    usingContext: boolean
+  }
+}
+
+declare namespace ChatData {
+  interface Main { [key: CID]: ChatData.Conversation }
+
+  interface Conversation {
     title: string
-  }
-
-  interface Chat {
-    uuid: number
-    data: Message[]
-    usingContext?: boolean
-    draftPrompt?: string
+    messages: ChatData.Message[]
   }
 
   interface Message {
+    mid: MID
     dateTime: string
     text: string
-    inversion?: boolean
+    inversion: boolean
     error?: boolean
   }
 }
@@ -44,5 +55,33 @@ interface ConversationResponse {
     completion_tokens: number
     prompt_tokens: number
     total_tokens: number
+  }
+}
+
+// legacy
+declare namespace LegacyChat {
+  interface State {
+    active: number | null
+    history: History[]
+    chat: Chat[]
+  }
+
+  interface History {
+    uuid: number
+    title: string
+  }
+
+  interface Chat {
+    uuid: number
+    data: Message[]
+    usingContext?: boolean
+    draftPrompt?: string
+  }
+
+  interface Message {
+    dateTime: string
+    text: string
+    inversion?: boolean
+    error?: boolean
   }
 }

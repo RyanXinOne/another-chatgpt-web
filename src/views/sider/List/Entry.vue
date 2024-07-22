@@ -8,7 +8,7 @@ import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { debounce } from '@/utils/functions/debounce'
 
 interface Props {
-  uuid: number
+  cid: CID
   title: string
   ordering?: boolean
 }
@@ -26,7 +26,7 @@ const editing = ref<boolean>(false)
 
 const inputRef = ref<Ref | null>(null)
 
-const isActive = computed<boolean>(() => chatStore.active === props.uuid)
+const isActive = computed<boolean>(() => chatStore.active === props.cid)
 
 watch(isActive, (value) => {
   if (!value && editing.value)
@@ -37,7 +37,7 @@ function handleSelect() {
   if (isActive.value)
     return
 
-  chatStore.setActive(props.uuid)
+  chatStore.setActive(props.cid)
 
   if (isMobile.value)
     appStore.setSiderCollapsed(true)
@@ -54,14 +54,14 @@ function handleEdit() {
 
 function handleDelete() {
   debounce(() => {
-    chatStore.deleteHistoryAndChat(props.uuid)
+    chatStore.deleteConversation(props.cid)
     if (isMobile.value)
       appStore.setSiderCollapsed(true)
   }, 500)()
 }
 
 function handleSave() {
-  chatStore.updateHistory(props.uuid, { title: editingTitle.value })
+  chatStore.setTitle(props.cid, editingTitle.value)
   editing.value = false
 }
 

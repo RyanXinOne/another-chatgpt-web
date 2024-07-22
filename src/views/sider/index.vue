@@ -26,7 +26,7 @@ const searchText = computed<string>(() => searchInput.value.trim().toLowerCase()
 const ordering = ref<boolean>(false)
 
 function handleAdd() {
-  chatStore.addHistoryAndChat()
+  chatStore.addConversation()
   if (isMobile.value)
     appStore.setSiderCollapsed(true)
 }
@@ -42,7 +42,7 @@ function handleClearAll() {
     positiveText: t('common.yes'),
     negativeText: t('common.no'),
     onPositiveClick: () => {
-      chatStore.clearHistoryAndChat()
+      chatStore.clearConversations()
       if (isMobile.value)
         appStore.setSiderCollapsed(true)
     },

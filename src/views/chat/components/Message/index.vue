@@ -11,11 +11,11 @@ import { copyToClip } from '@/utils/copy'
 import { useChatStore } from '@/store'
 
 interface Props {
-  uuid: number | null
+  cid: CID | null
   index: number
   dateTime: string
   text: string
-  inversion?: boolean
+  inversion: boolean
   error?: boolean
   loading?: boolean
 }
@@ -110,7 +110,7 @@ async function handleCopy() {
 }
 
 function saveEditing() {
-  chatStore.updateChatMessage(props.uuid, props.index, { dateTime: new Date().toLocaleString(), text: editingText.value })
+  chatStore.updateMessage(props.cid, props.index, { dateTime: new Date().toLocaleString(), text: editingText.value })
   editing.value = false
 }
 

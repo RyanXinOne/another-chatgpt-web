@@ -19,7 +19,7 @@ const filteredList = computed(() => {
   if (props.searchText.length === 0)
     return chatStore.history
 
-  return chatStore.history.filter((item) => item.title.toLowerCase().includes(props.searchText))
+  return chatStore.history.filter((cid) => chatStore.getTitle(cid).toLowerCase().includes(props.searchText))
 })
 
 const orderingList = computed(() => chatStore.history)
@@ -40,15 +40,15 @@ watch(orderingList, (value) => {
         </div>
       </template>
       <template v-else>
-        <div v-for="item of filteredList" :key="item.uuid">
-          <Entry :uuid="item.uuid" :title="item.title" :ordering="false" />
+        <div v-for="cid of filteredList" :key="cid">
+          <Entry :cid="cid" :title="chatStore.getTitle(cid)" :ordering="false" />
         </div>
       </template>
     </div>
   </NScrollbar>
   <div v-else ref="parent" class="flex flex-col gap-2 pb-1 px-3 mx-1 h-full overflow-auto text-sm">
-    <div v-for="(item, index) of orderingList" :key="item.uuid" :index="index">
-      <Entry :uuid="item.uuid" :title="item.title" :ordering="true" />
+    <div v-for="(cid, index) of orderingList" :key="cid" :index="index">
+      <Entry :cid="cid" :title="chatStore.getTitle(cid)" :ordering="true" />
     </div>
   </div>
 </template>

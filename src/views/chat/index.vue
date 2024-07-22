@@ -30,11 +30,11 @@ const promptStore = usePromptStore()
 const { isMobile } = useBasicLayout()
 const { scrollRef, scrollToBottom, scrollToBottomIfAtBottom } = useScroll()
 
-const uuid = computed(() => chatStore.active)
+const cid = computed(() => chatStore.active)
 
-const dataSources = computed(() => chatStore.getChatMessages(uuid.value))
+const dataSources = computed(() => chatStore.getMessages(cid.value))
 
-const usingContext = computed<boolean>(() => chatStore.getChatUsingContext(uuid.value))
+const usingContext = computed<boolean>(() => chatStore.getUsingContext(cid.value))
 
 const prompt = ref<string>('')
 
@@ -42,15 +42,15 @@ const loadingIndex = ref<number>(-1)
 
 const inputRef = ref<Ref | null>(null)
 
-const debouncedSaveDraft = debounce((uuid: number | null, value: string) => {
-  chatStore.updateChatDraftPrompt(uuid, value)
+const debouncedSaveDraft = debounce((cid: CID | null, value: string) => {
+  chatStore.updateDraftPrompt(cid, value)
 }, 500)
 
 watch(prompt, (value) => {
-  debouncedSaveDraft(uuid.value, value)
+  debouncedSaveDraft(cid.value, value)
 })
 
-watch(uuid, (newVal, oldVal) => {
+watch(cid, (newVal, oldVal) => {
   if (oldVal !== null) {
     resetState()
   }
@@ -65,13 +65,13 @@ function resetState() {
     controller.abort()
   }
   scrollToBottom()
-  prompt.value = chatStore.getChatDraftPrompt(uuid.value)
+  prompt.value = chatStore.getDraftPrompt(cid.value)
   if (!isMobile.value)
     inputRef.value.focus()
 }
 
-function buildContextMessages(uuid: number | null, startIndex: number, endIndex: number, maxTokens: number = 128000): [PostMessage] {
-  const sourceMessages = chatStore.getChatMessages(uuid)
+function buildContextMessages(cid: CID | null, startIndex: number, endIndex: number, maxTokens: number = 128000): [PostMessage] {
+  const sourceMessages = chatStore.getMessages(cid)
 
   startIndex = Math.max(0, startIndex)
   endIndex = Math.min(sourceMessages.length, endIndex)
@@ -108,9 +108,9 @@ function buildContextMessages(uuid: number | null, startIndex: number, endIndex:
   return messages as [PostMessage]
 }
 
-async function chatProcess(uuid: number | null, index: number, usingContext: boolean, regenerate: boolean = false) {
-  chatStore.updateChatMessage(
-    uuid,
+async function chatProcess(cid: CID | null, index: number, usingContext: boolean, regenerate: boolean = false) {
+  chatStore.updateMessage(
+    cid,
     index,
     {
       dateTime: new Date().toLocaleString(),
@@ -121,7 +121,7 @@ async function chatProcess(uuid: number | null, index: number, usingContext: boo
   )
   loadingIndex.value = index
 
-  let messages: [PostMessage] = buildContextMessages(uuid, usingContext ? 0 : index - 1, index)
+  let messages: [PostMessage] = buildContextMessages(cid, usingContext ? 0 : index - 1, index)
   controller = new AbortController()
 
   try {
@@ -137,8 +137,8 @@ async function chatProcess(uuid: number | null, index: number, usingContext: boo
             const chunks = responseText.trim().split('\n')
             const data: ConversationResponse[] = chunks.map((chunk: string) => JSON.parse(chunk))
             const text = lastText + data.map((response) => response.choices[0]?.delta?.content || '').join('')
-            chatStore.updateChatMessage(
-              uuid,
+            chatStore.updateMessage(
+              cid,
               index,
               {
                 dateTime: new Date().toLocaleString(),
@@ -148,7 +148,7 @@ async function chatProcess(uuid: number | null, index: number, usingContext: boo
 
             if (openLongReply && data[data.length - 1].choices[0]?.finish_reason === 'length') {
               lastText = text
-              messages = buildContextMessages(uuid, usingContext ? 0 : index - 1, index + 1)
+              messages = buildContextMessages(cid, usingContext ? 0 : index - 1, index + 1)
               messages.push({ role: 'user', content: '' })
               return fetchChatAPIOnce()
             }
@@ -171,11 +171,11 @@ async function chatProcess(uuid: number | null, index: number, usingContext: boo
 
     const errorMessage = error?.message ?? t('common.wrong')
 
-    const currentChat = chatStore.getChatMessage(uuid, index)
+    const currentChat = chatStore.getMessage(cid, index)
 
     if (currentChat?.text && currentChat.text !== '') {
-      chatStore.updateChatMessage(
-        uuid,
+      chatStore.updateMessage(
+        cid,
         index,
         {
           dateTime: new Date().toLocaleString(),
@@ -186,8 +186,8 @@ async function chatProcess(uuid: number | null, index: number, usingContext: boo
       return
     }
 
-    chatStore.updateChatMessage(
-      uuid,
+    chatStore.updateMessage(
+      cid,
       index,
       {
         dateTime: new Date().toLocaleString(),
@@ -214,35 +214,19 @@ async function onConversation() {
   if (!prompt.value || prompt.value.trim() === '')
     return
 
-  if (uuid.value === null) {
-    chatStore.addHistoryAndChat()
+  if (cid.value === null) {
+    chatStore.addConversation()
   }
 
-  const messageUuid = uuid.value
+  const messageCid = cid.value
   const messageIndex = dataSources.value.length + 1
 
-  chatStore.addChatMessage(
-    messageUuid,
-    {
-      dateTime: new Date().toLocaleString(),
-      text: prompt.value,
-      inversion: true,
-      error: false,
-    },
-  )
-  chatStore.addChatMessage(
-    messageUuid,
-    {
-      dateTime: new Date().toLocaleString(),
-      text: t('chat.thinking'),
-      inversion: false,
-      error: false,
-    },
-  )
+  chatStore.addMessage(messageCid, prompt.value, true)
+  chatStore.addMessage(messageCid, t('chat.thinking'), false)
   scrollToBottom()
   prompt.value = ''
 
-  await chatProcess(messageUuid, messageIndex, usingContext.value)
+  await chatProcess(messageCid, messageIndex, usingContext.value)
 }
 
 async function onRegenerate(messageIndex: number) {
@@ -251,11 +235,11 @@ async function onRegenerate(messageIndex: number) {
   if (!dataSources.value[messageIndex - 1]?.inversion)
     return
 
-  await chatProcess(uuid.value, messageIndex, usingContext.value, true)
+  await chatProcess(cid.value, messageIndex, usingContext.value, true)
 }
 
 function toggleUsingContext() {
-  chatStore.toggleChatUsingContext(uuid.value)
+  chatStore.toggleUsingContext(cid.value)
   if (usingContext.value)
     ms.success(t('chat.turnOnContext'))
   else
@@ -314,7 +298,7 @@ function handleDelete(index: number) {
     positiveText: t('common.yes'),
     negativeText: t('common.no'),
     onPositiveClick: () => {
-      chatStore.deleteChatMessage(uuid.value, index)
+      chatStore.deleteMessage(cid.value, index)
     },
   })
 }
@@ -329,7 +313,7 @@ function handleClear() {
     positiveText: t('common.yes'),
     negativeText: t('common.no'),
     onPositiveClick: () => {
-      chatStore.clearChatMessages(uuid.value)
+      chatStore.clearMessages(cid.value)
     },
   })
 }
@@ -421,9 +405,9 @@ const footerClass = computed(() => {
               </div>
             </template>
             <template v-else>
-              <div v-for="(item, index) of dataSources" :key="item.dateTime">
+              <div v-for="(item, index) of dataSources" :key="item.mid">
                 <Message
-                  :uuid="uuid"
+                  :cid="cid"
                   :index="index"
                   :date-time="item.dateTime"
                   :text="item.text"
