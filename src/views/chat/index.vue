@@ -391,8 +391,8 @@ const footerClass = computed(() => {
       @export="handleExport"
       @handle-clear="handleClear"
     />
-    <main class="flex-1 overflow-hidden">
-      <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
+    <main class="flex-1 overflow-hidden relative flex justify-center">
+      <div id="scrollRef" ref="scrollRef" class="w-full h-full overflow-hidden overflow-y-auto">
         <div
           class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
           :class="[isMobile ? 'p-2' : 'p-4']"
@@ -418,17 +418,17 @@ const footerClass = computed(() => {
                   @delete="handleDelete(index)"
                 />
               </div>
-              <div class="sticky bottom-0 left-0 flex justify-center">
-                <NButton v-if="loadingIndex > -1" type="warning" @click="handleStop">
-                  <template #icon>
-                    <SvgIcon icon="ri:stop-circle-line" />
-                  </template>
-                  {{ t('common.stopResponding') }}
-                </NButton>
-              </div>
             </template>
           </div>
         </div>
+      </div>
+      <div class="absolute bottom-0">
+        <NButton v-if="loadingIndex > -1" type="warning" @click="handleStop">
+          <template #icon>
+            <SvgIcon icon="ri:stop-circle-line" />
+          </template>
+          {{ t('common.stopResponding') }}
+        </NButton>
       </div>
     </main>
     <footer :class="footerClass">
