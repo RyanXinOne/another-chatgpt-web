@@ -147,9 +147,9 @@ export const useChatStore = defineStore('chat-store', {
       setChatData(this.data)
     },
 
-    import(state: Chat) {
-      this.state = state.state
-      this.data = state.data
+    import(chat: Chat) {
+      this.state = chat.state
+      this.data = chat.data
       setChatState(this.state)
       setChatData(this.data)
     },

@@ -3,7 +3,7 @@ interface StorageData<T = any> {
   expire: number | null
 }
 
-function createLocalStorage(options?: { expire?: number | null }) {
+function createStorage(storage: Storage, options?: { expire?: number | null }) {
   const DEFAULT_CACHE_TIME = 60 * 60 * 24 * 7
 
   const { expire } = Object.assign({ expire: DEFAULT_CACHE_TIME }, options)
@@ -15,11 +15,11 @@ function createLocalStorage(options?: { expire?: number | null }) {
     }
 
     const json = JSON.stringify(storageData)
-    window.localStorage.setItem(key, json)
+    storage.setItem(key, json)
   }
 
   function get(key: string) {
-    const json = window.localStorage.getItem(key)
+    const json = storage.getItem(key)
     if (json) {
       let storageData: StorageData | null = null
 
@@ -42,14 +42,15 @@ function createLocalStorage(options?: { expire?: number | null }) {
   }
 
   function remove(key: string) {
-    window.localStorage.removeItem(key)
+    storage.removeItem(key)
   }
 
   function clear() {
-    window.localStorage.clear()
+    storage.clear()
   }
 
   return { set, get, remove, clear }
 }
 
-export const ls = createLocalStorage({ expire: null })
+export const ls = createStorage(window.localStorage, { expire: null })
+export const ss = createStorage(window.sessionStorage, { expire: null })

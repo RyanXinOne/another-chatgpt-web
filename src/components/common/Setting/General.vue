@@ -118,6 +118,7 @@ function importData(event: Event): void {
       const data = JSON.parse(reader.result as string)
       chatStore.import(data)
       ms.success(t('common.success'))
+      location.reload()
     }
     catch (error) {
       ms.error(t('common.invalidFileFormat'))
