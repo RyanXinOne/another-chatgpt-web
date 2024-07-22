@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { getToken, removeToken, setToken } from './helper'
-import { store } from '@/store/helper'
 import { fetchSession } from '@/api'
 
 interface SessionResponse {
@@ -41,7 +40,3 @@ export const useAuthStore = defineStore('auth-store', {
     },
   },
 })
-
-export function useAuthStoreWithout() {
-  return useAuthStore(store)
-}

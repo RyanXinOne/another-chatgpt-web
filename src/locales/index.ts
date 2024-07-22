@@ -7,10 +7,11 @@ import ruRU from './ru-RU'
 import viVN from './vi-VN'
 import zhCN from './zh-CN'
 import zhTW from './zh-TW'
-import { useAppStoreWithOut } from '@/store/modules/app'
+import { store } from '@/store/helper'
+import { useAppStore } from '@/store/modules/app'
 import type { Language } from '@/store/modules/app/helper'
 
-const appStore = useAppStoreWithOut()
+const appStore = useAppStore(store)
 
 const defaultLocale = appStore.language || 'zh-CN'
 

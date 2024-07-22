@@ -29,6 +29,20 @@ const getContainerClass = computed(() => {
     { 'pl-[260px]': !isMobile.value && !collapsed.value },
   ]
 })
+
+async function setupPageGuard() {
+  if (!authStore.session) {
+    try {
+      const data = await authStore.getSession()
+      if (String(data.auth) === 'false' && authStore.token)
+        authStore.removeToken()
+    } catch {
+      console.error('Failed to fetch session.')
+    }
+  }
+}
+
+setupPageGuard()
 </script>
 
 <template>
