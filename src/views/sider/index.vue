@@ -28,6 +28,8 @@ const searchText = computed<string>(() => searchInput.value.trim().toLowerCase()
 
 const ordering = ref<boolean>(false)
 
+const triggerScroll = ref<boolean>(false)
+
 const model = computed({
   get() {
     return settingStore.model
@@ -53,6 +55,7 @@ const showModelOptions = ref<boolean>(false)
 
 function handleAdd() {
   chatStore.addConversation()
+  triggerScroll.value = !triggerScroll.value
   if (isMobile.value)
     appStore.setSiderCollapsed(true)
 }
@@ -143,7 +146,7 @@ watch(
           </NInput>
         </div>
         <div class="flex-1 min-h-0 pb-2 overflow-hidden">
-          <List :searchText="searchText" :ordering="ordering" />
+          <List :searchText="searchText" :ordering="ordering" :trigger-scroll="triggerScroll" />
         </div>
         <div class="flex items-center p-4 space-x-2">
           <NButton size="small" :type="ordering ? 'success' : 'default'" @click="ordering = !ordering" :disabled="searchText.length > 0">

@@ -1,5 +1,5 @@
 <script setup lang='ts'>
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { NScrollbar } from 'naive-ui'
 import { useDragAndDrop } from 'vue-fluid-dnd'
 import Entry from './Entry.vue'
@@ -9,6 +9,7 @@ import { useChatStore } from '@/store'
 interface Props {
   searchText: string
   ordering: boolean
+  triggerScroll: boolean
 }
 
 const props = defineProps<Props>()
@@ -28,10 +29,16 @@ const { parent } = useDragAndDrop(orderingList)
 watch(orderingList, (value) => {
   chatStore.setHistory(value)
 }, { deep: true })
+
+const scrollBar = ref<HTMLElement | null>(null)
+
+watch(() => props.triggerScroll, () => {
+  scrollBar.value?.scrollTo({ top: 0 })
+})
 </script>
 
 <template>
-  <NScrollbar v-if="!ordering" class="px-4">
+  <NScrollbar v-if="!ordering" ref="scrollBar" class="px-4">
     <div class="flex flex-col gap-2 text-sm pb-1">
       <template v-if="!filteredList.length">
         <div class="flex flex-col items-center mt-4 text-center text-neutral-300">
