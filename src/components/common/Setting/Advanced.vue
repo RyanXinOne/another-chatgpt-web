@@ -1,27 +1,13 @@
 <script lang="ts" setup>
-import { computed, ref } from 'vue'
-import { NButton, NInput, NSelect, NSlider, useMessage } from 'naive-ui'
+import { ref } from 'vue'
+import { NButton, NInput, NSlider, useMessage } from 'naive-ui'
 import { useSettingStore } from '@/store'
-import type { Model, SettingsState } from '@/store/modules/settings/helper'
+import type { SettingsState } from '@/store/modules/settings/helper'
 import { t } from '@/locales'
 
 const settingStore = useSettingStore()
 
 const ms = useMessage()
-
-const model = computed({
-  get() {
-    return settingStore.model
-  },
-  set(value: Model) {
-    settingStore.updateSetting({ model: value })
-  },
-})
-
-const modelOptions: { label: string; key: Model; value: Model }[] = [
-  { label: 'gpt-4o', key: 'gpt-4o', value: 'gpt-4o' },
-  { label: 'gpt-4o-mini', key: 'gpt-4o-mini', value: 'gpt-4o-mini' },
-]
 
 const systemMessage = ref(settingStore.systemMessage)
 
@@ -44,15 +30,6 @@ function handleReset() {
 <template>
   <div class="p-4 space-y-5 min-h-[200px]">
     <div class="space-y-6">
-      <div class="flex items-center space-x-4">
-        <span class="flex-shrink-0 w-[120px]">{{ $t('setting.model') }}</span>
-        <NSelect
-          style="width: 140px"
-          :value="model"
-          :options="modelOptions"
-          @update-value="value => model = value"
-        />
-      </div>
       <div class="flex items-center space-x-4">
         <span class="flex-shrink-0 w-[120px]">{{ $t('setting.role') }}</span>
         <div class="flex-1">

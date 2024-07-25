@@ -1,16 +1,19 @@
 <script setup lang='ts'>
 import type { CSSProperties } from 'vue'
 import { computed, ref, watch } from 'vue'
-import { NButton, NInput, NLayoutSider, useDialog } from 'naive-ui'
+import { NButton, NInput, NLayoutSider, NSelect, useDialog } from 'naive-ui'
+import type { SelectGroupOption } from 'naive-ui'
 import List from './List/index.vue'
 import Footer from './Footer/index.vue'
-import { useAppStore, useChatStore } from '@/store'
+import { useAppStore, useChatStore, useSettingStore } from '@/store'
+import type { Model } from '@/store/modules/settings/helper'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { PromptStore, SvgIcon } from '@/components/common'
 import { t } from '@/locales'
 
 const appStore = useAppStore()
 const chatStore = useChatStore()
+const settingStore = useSettingStore()
 
 const dialog = useDialog()
 
@@ -24,6 +27,29 @@ const searchInput = ref<string>('')
 const searchText = computed<string>(() => searchInput.value.trim().toLowerCase())
 
 const ordering = ref<boolean>(false)
+
+const model = computed({
+  get() {
+    return settingStore.model
+  },
+  set(value: Model) {
+    settingStore.updateSetting({ model: value })
+  },
+})
+
+const modelOptions: Array<SelectGroupOption> = [
+  {
+    type: 'group',
+    label: t('setting.model'),
+    key: 'model',
+    children: [
+      { label: 'gpt-4o', value: 'gpt-4o' },
+      { label: 'gpt-4o-mini', value: 'gpt-4o-mini' },
+    ],
+  }
+]
+
+const showModelOptions = ref<boolean>(false)
 
 function handleAdd() {
   chatStore.addConversation()
@@ -94,10 +120,20 @@ watch(
   >
     <div class="flex flex-col h-full" :style="mobileSafeArea">
       <main class="flex flex-col flex-1 min-h-0">
-        <div class="p-4">
-          <NButton dashed block @click="handleAdd">
-            {{ $t('chat.newChatButton') }}
+        <div class="p-4 flex items-center gap-2">
+          <NButton dashed @click="handleAdd" :title="$t('chat.newChatButton')">
+            <SvgIcon icon="ri:chat-new-line" />
           </NButton>
+          <NSelect
+            v-model:show="showModelOptions"
+            :value="model"
+            :options="modelOptions"
+            @update-value="value => model = value"
+          >
+            <template #arrow v-if="!showModelOptions">
+              <SvgIcon icon="ri:openai-line" />
+            </template>
+          </NSelect>
         </div>
         <div class="px-4 pb-4">
           <NInput v-model:value="searchInput" :placeholder="t('common.search')" size="small" round clearable :disabled="ordering">
