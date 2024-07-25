@@ -39,17 +39,15 @@ const model = computed({
   },
 })
 
-const modelOptions: Array<SelectGroupOption> = [
-  {
-    type: 'group',
-    label: t('setting.model'),
-    key: 'model',
-    children: [
-      { label: 'gpt-4o', value: 'gpt-4o' },
-      { label: 'gpt-4o-mini', value: 'gpt-4o-mini' },
-    ],
-  }
-]
+const modelOptions = computed<Array<SelectGroupOption>>(() => [{
+  type: 'group',
+  label: t('setting.model'),
+  key: 'model',
+  children: [
+    { label: 'gpt-4o', value: 'gpt-4o' },
+    { label: 'gpt-4o-mini', value: 'gpt-4o-mini' },
+  ],
+}])
 
 const showModelOptions = ref<boolean>(false)
 
