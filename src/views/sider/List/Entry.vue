@@ -7,6 +7,7 @@ import { useAppStore, useChatStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { debounce } from '@/utils/functions/debounce'
 import { generateTitle } from '@/views/chat/helper'
+import { t } from '@/locales'
 
 interface Props {
   cid: CID
@@ -71,9 +72,8 @@ function handleCancel() {
 }
 
 function handleGenerate() {
-  if (chatStore.getMessages(props.cid).length === 0)
-    return
-  generateTitle(props.cid)
+  if (chatStore.getTitle(props.cid) !== t('chat.thinking') && chatStore.getMessages(props.cid).length > 0)
+    generateTitle(props.cid)
 }
 </script>
 
