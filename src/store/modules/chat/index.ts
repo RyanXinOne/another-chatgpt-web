@@ -122,7 +122,7 @@ export const useChatStore = defineStore('chat-store', {
         return
       const message: ChatData.Message = {
         mid: uuidv4(),
-        dateTime: new Date().toISOString(),
+        dateTime: new Date().toLocaleString(),
         text,
         inversion,
         error: false,
