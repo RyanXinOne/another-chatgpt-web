@@ -124,7 +124,7 @@ function handleGenerate() {
     </div>
   </a>
   <div v-else
-  class="relative flex items-center gap-3 px-3 py-3 break-all border rounded-md hover:bg-neutral-100 group dark:border-neutral-800 dark:hover:bg-[#24272e]"
+  class="relative flex items-center gap-2 px-3 py-3 break-all border rounded-md hover:bg-neutral-100 group dark:border-neutral-800 dark:hover:bg-[#24272e]"
   :class="isActive && ['border-[#4b9e5f]', 'bg-neutral-100', 'text-[#4b9e5f]', 'dark:bg-[#24272e]', 'dark:border-[#4b9e5f]']">
     <span>
       <SvgIcon icon="ri:draggable" />
