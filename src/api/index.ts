@@ -1,22 +1,23 @@
 import type { AxiosProgressEvent, GenericAbortSignal } from 'axios'
 import { post } from '@/utils/request'
-import { useSettingStore } from '@/store'
+import type { Model } from '@/store/modules/settings/helper'
 import type { PostMessage } from './helper'
 
 export function fetchChatAPIProcess<T = any>(
   params: {
-    messages: [PostMessage]
+    model: Model
+    messages: PostMessage[]
+    temperature: number
+    top_p: number
     signal?: GenericAbortSignal
     onDownloadProgress?: (progressEvent: AxiosProgressEvent) => void
   },
 ) {
-  const settingStore = useSettingStore()
-
   let data: Record<string, any> = {
-    model: settingStore.model,
+    model: params.model,
     messages: params.messages,
-    temperature: settingStore.temperature,
-    top_p: settingStore.top_p,
+    temperature: params.temperature,
+    top_p: params.top_p,
   }
 
   return post<T>({

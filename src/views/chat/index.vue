@@ -70,11 +70,11 @@ function resetState() {
     inputRef.value.focus()
 }
 
-function buildContextMessages(cid: CID | null, startIndex: number, endIndex: number, maxTokens: number = 128000): [PostMessage] {
+function buildContextMessages(cid: CID | null, startIndex?: number, endIndex?: number, systemMsg: boolean = true, maxTokens: number = 128000): PostMessage[] {
   const sourceMessages = chatStore.getMessages(cid)
 
-  startIndex = Math.max(0, startIndex)
-  endIndex = Math.min(sourceMessages.length, endIndex)
+  startIndex = startIndex !== undefined ? Math.max(0, startIndex) : 0
+  endIndex = endIndex !== undefined ? Math.min(sourceMessages.length, endIndex) : sourceMessages.length
 
   const encoding = getEncoding('cl100k_base')
   const tokens_per_message = 3
@@ -87,7 +87,8 @@ function buildContextMessages(cid: CID | null, startIndex: number, endIndex: num
   let estimated_tokens = 3
 
   const systemMessage: PostMessage = { role: 'system', content: settingStore.systemMessage }
-  estimated_tokens += count_message_token(systemMessage)
+  if (systemMsg)
+    estimated_tokens += count_message_token(systemMessage)
 
   const messages: PostMessage[] = []
   for (let i = endIndex - 1; i >= startIndex; i--) {
@@ -103,9 +104,10 @@ function buildContextMessages(cid: CID | null, startIndex: number, endIndex: num
       messages.push(message)
     }
   }
-  messages.push(systemMessage)
+  if (systemMsg)
+    messages.push(systemMessage)
   messages.reverse()
-  return messages as [PostMessage]
+  return messages
 }
 
 async function chatProcess(cid: CID | null, index: number, usingContext: boolean, regenerate: boolean = false) {
@@ -121,14 +123,17 @@ async function chatProcess(cid: CID | null, index: number, usingContext: boolean
   )
   loadingIndex.value = index
 
-  let messages: [PostMessage] = buildContextMessages(cid, usingContext ? 0 : index - 1, index)
+  let messages: PostMessage[] = buildContextMessages(cid, usingContext ? 0 : index - 1, index)
   controller = new AbortController()
 
   try {
     let lastText = ''
     const fetchChatAPIOnce = async () => {
       await fetchChatAPIProcess<ConversationResponse>({
+        model: settingStore.model,
         messages,
+        temperature: settingStore.temperature,
+        top_p: settingStore.top_p,
         signal: controller.signal,
         onDownloadProgress: ({ event }) => {
           const xhr = event.target
@@ -203,6 +208,36 @@ async function chatProcess(cid: CID | null, index: number, usingContext: boolean
   }
 }
 
+async function generateTitle(cid: CID | null) {
+  chatStore.setTitle(cid, t('chat.thinking'))
+
+  let messages: PostMessage[] = buildContextMessages(cid, undefined, undefined, false)
+  messages.push({ role: 'system', content: 'Extract keywords from above messages to generate a summary title of the conversation topic. Respond as briefly as possible.' })
+  try {
+    await fetchChatAPIProcess<ConversationResponse>({
+      model: 'gpt-4o',
+      messages,
+      temperature: 0,
+      top_p: 1,
+      onDownloadProgress: ({ event }) => {
+        const xhr = event.target
+        const { responseText } = xhr
+        try {
+          const chunks = responseText.trim().split('\n')
+          const data: ConversationResponse[] = chunks.map((chunk: string) => JSON.parse(chunk))
+          const text = data.map((response) => response.choices[0]?.delta?.content || '').join('')
+          chatStore.setTitle(cid, text)
+        }
+        catch { }
+      },
+    })
+  }
+  catch {
+    if (chatStore.getTitle(cid) === t('chat.thinking'))
+      chatStore.setTitle(cid, t('chat.newChatTitle'))
+  }
+}
+
 async function onConversation() {
   if (prompt.value.trim() === '/\u5154\u5154') {
     window.dispatchEvent(new Event('fallings'))
@@ -222,6 +257,9 @@ async function onConversation() {
   const messageIndex = dataSources.value.length + 1
 
   chatStore.addMessage(messageCid, prompt.value, true)
+  if (chatStore.getTitle(messageCid) === t('chat.newChatTitle')) {
+    generateTitle(messageCid)
+  }
   chatStore.addMessage(messageCid, t('chat.thinking'), false)
   scrollToBottom()
   prompt.value = ''

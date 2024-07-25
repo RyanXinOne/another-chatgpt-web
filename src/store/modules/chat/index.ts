@@ -128,8 +128,6 @@ export const useChatStore = defineStore('chat-store', {
         error: false,
       }
       this.data[cid].messages.push(message)
-      if (this.data[cid].title === t('chat.newChatTitle'))
-        this.data[cid].title = message.text
       setChatData(this.data)
     },
 
