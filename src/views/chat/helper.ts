@@ -51,7 +51,7 @@ export async function generateTitle(cid: CID | null) {
   chatStore.setTitle(cid, t('chat.thinking'))
 
   let messages: PostMessage[] = buildContextMessages(cid, undefined, undefined, false)
-  messages.push({ role: 'system', content: 'Extract keywords from above messages to generate a summary title of the conversation topic. Respond as briefly as possible and do not add heading.' })
+  messages.push({ role: 'system', content: 'Extract keywords from above messages to generate a summary title of the conversation topic, following the language used by the user. Respond as briefly as possible (less than 10 words) and do not add heading.' })
   try {
     await fetchChatAPIProcess<ConversationResponse>({
       model: 'gpt-4o',
