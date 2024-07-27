@@ -107,7 +107,6 @@ export async function openaiChatCompletion(options: OpenAIAPI.RequestOptions) {
       }
     })
   } catch (error: any) {
-    global.console.error(error)
     return sendResponse({ type: 'Fail', message: error.message })
   }
 }

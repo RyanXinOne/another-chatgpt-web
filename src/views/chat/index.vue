@@ -101,15 +101,25 @@ async function chatProcess(cid: CID | null, index: number, usingContext: boolean
           try {
             const chunks = responseText.trim().split('\n')
             const data: ResponseChunk[] = chunks.map((chunk: string) => JSON.parse(chunk))
-            const text = lastText + data.map((response) => response.delta_text || '').join('')
+            let error = false
+            const text = lastText + data.map((response) => {
+              if (response.error) {
+                error = true
+                return `[${response.error}]`
+              }
+              return response.delta_text || ''
+            }).join('')
             chatStore.updateMessage(
               cid,
               index,
               {
                 dateTime: new Date().toLocaleString(),
                 text,
+                error,
               },
             )
+            if (!regenerate)
+              scrollToBottomIfAtBottom()
 
             if (openLongReply && data[data.length - 1].stop_reason === 'length') {
               lastText = text
@@ -117,46 +127,24 @@ async function chatProcess(cid: CID | null, index: number, usingContext: boolean
               messages.push({ role: 'user', content: '' })
               return fetchChatAPIOnce()
             }
-
-            if (!regenerate)
-              scrollToBottomIfAtBottom()
           }
-          catch (error) { }
+          catch { }
         },
       })
     }
     await fetchChatAPIOnce()
   }
   catch (error: any) {
-    if (error.message === 'canceled') {
-      if (!regenerate)
-        scrollToBottomIfAtBottom()
+    if (error.message === 'canceled')
       return
-    }
 
     const errorMessage = error?.message ?? t('common.wrong')
-
-    const currentChat = chatStore.getMessage(cid, index)
-
-    if (currentChat?.text && currentChat.text !== '') {
-      chatStore.updateMessage(
-        cid,
-        index,
-        {
-          dateTime: new Date().toLocaleString(),
-          text: `${currentChat.text}\n[${errorMessage}]`,
-          error: true,
-        },
-      )
-      return
-    }
-
     chatStore.updateMessage(
       cid,
       index,
       {
         dateTime: new Date().toLocaleString(),
-        text: errorMessage,
+        text: `${chatStore.getMessage(cid, index)?.text || ''}\n[${errorMessage}]`,
         error: true,
       },
     )

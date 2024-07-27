@@ -19,6 +19,7 @@ export type StopReason = 'end' | 'length' | 'others'
 export interface ResponseChunk {
   delta_text?: string
   stop_reason?: StopReason
+  error?: string
 }
 
 export interface TokenLimit {

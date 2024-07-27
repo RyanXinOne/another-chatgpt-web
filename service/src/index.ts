@@ -3,7 +3,7 @@ import express from 'express'
 import { openaiChatCompletion } from './openai'
 import { auth, getAuthConfig } from './middleware/auth'
 import { logUsage } from './middleware/logger'
-import type { RequestProps, Usage } from './types'
+import type { RequestProps, ResponseChunk, Usage } from './types'
 
 dotenv.config({ override: true })
 
@@ -28,7 +28,7 @@ router.post('/chat-process', [auth], async (req, res) => {
     let firstChunk = true
     const response = await openaiChatCompletion({
       model, messages, temperature, top_p,
-      callback: (chunk) => {
+      callback: (chunk: ResponseChunk) => {
         const chunkStr = JSON.stringify(chunk)
         if (chunkStr === '{}') return
         res.write(firstChunk ? chunkStr : `\n${chunkStr}`)
@@ -41,7 +41,9 @@ router.post('/chat-process', [auth], async (req, res) => {
     await logUsage(model, response.data.usage, user)
   }
   catch (error) {
-    res.write(JSON.stringify(error))
+    global.console.error(error)
+    const chunk: ResponseChunk = { error: error.message || '500 Internal Server Error' }
+    res.write(JSON.stringify(chunk))
   }
   finally {
     res.end()
