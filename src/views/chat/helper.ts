@@ -2,7 +2,7 @@ import { getEncoding } from 'js-tiktoken'
 import { useChatStore, useSettingStore } from '@/store'
 import { t } from '@/locales'
 import { fetchChatAPIProcess } from '@/api'
-import type { PostMessage } from '@/api/helper'
+import type { PostMessage, ResponseChunk } from '@/api/helper'
 
 const chatStore = useChatStore()
 const settingStore = useSettingStore()
@@ -53,7 +53,7 @@ export async function generateTitle(cid: CID | null) {
   let messages: PostMessage[] = buildContextMessages(cid, undefined, undefined, false)
   messages.push({ role: 'system', content: 'Extract keywords from above messages to generate a summary title of the conversation topic, following the language used by the user. Respond as briefly as possible (less than 10 words) and do not add heading.' })
   try {
-    await fetchChatAPIProcess<ConversationResponse>({
+    await fetchChatAPIProcess<ResponseChunk>({
       model: 'gpt-4o',
       messages,
       temperature: 0,
@@ -63,8 +63,8 @@ export async function generateTitle(cid: CID | null) {
         const { responseText } = xhr
         try {
           const chunks = responseText.trim().split('\n')
-          const data: ConversationResponse[] = chunks.map((chunk: string) => JSON.parse(chunk))
-          const text = data.map((response) => response.choices[0]?.delta?.content || '').join('')
+          const data: ResponseChunk[] = chunks.map((chunk: string) => JSON.parse(chunk))
+          const text = data.map((response) => response.delta_text || '').join('')
           chatStore.setTitle(cid, text)
         }
         catch { }

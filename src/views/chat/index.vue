@@ -12,7 +12,7 @@ import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { useChatStore, usePromptStore, useSettingStore } from '@/store'
 import { fetchChatAPIProcess } from '@/api'
-import type { PostMessage } from '@/api/helper'
+import type { PostMessage, ResponseChunk } from '@/api/helper'
 import { t } from '@/locales'
 import { debounce } from '@/utils/functions/debounce'
 
@@ -89,7 +89,7 @@ async function chatProcess(cid: CID | null, index: number, usingContext: boolean
   try {
     let lastText = ''
     const fetchChatAPIOnce = async () => {
-      await fetchChatAPIProcess<ConversationResponse>({
+      await fetchChatAPIProcess<ResponseChunk>({
         model: settingStore.model,
         messages,
         temperature: settingStore.temperature,
@@ -100,8 +100,8 @@ async function chatProcess(cid: CID | null, index: number, usingContext: boolean
           const { responseText } = xhr
           try {
             const chunks = responseText.trim().split('\n')
-            const data: ConversationResponse[] = chunks.map((chunk: string) => JSON.parse(chunk))
-            const text = lastText + data.map((response) => response.choices[0]?.delta?.content || '').join('')
+            const data: ResponseChunk[] = chunks.map((chunk: string) => JSON.parse(chunk))
+            const text = lastText + data.map((response) => response.delta_text || '').join('')
             chatStore.updateMessage(
               cid,
               index,
@@ -111,7 +111,7 @@ async function chatProcess(cid: CID | null, index: number, usingContext: boolean
               },
             )
 
-            if (openLongReply && data[data.length - 1].choices[0]?.finish_reason === 'length') {
+            if (openLongReply && data[data.length - 1].stop_reason === 'length') {
               lastText = text
               messages = buildContextMessages(cid, usingContext ? 0 : index - 1, index + 1)
               messages.push({ role: 'user', content: '' })

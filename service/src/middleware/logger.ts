@@ -1,19 +1,15 @@
 import fs from 'fs/promises'
-import type { CompletionUsage } from 'openai/src/resources/completions'
-import type { Model } from '../chatgpt/types'
+import type { Model, Usage } from '../types'
 
 interface UsageRecord {
   [date: string]: {
     [user: string]: {
-      [model in Model]?: {
-        prompt_tokens: number
-        completion_tokens: number
-      }
+      [model in Model]?: Usage
     }
   }
 }
 
-export async function logUsage(model: Model, usage: CompletionUsage, user?: string) {
+export async function logUsage(model: Model, usage: Usage, user?: string) {
   user = user ?? '__default__'
   const date = new Date()
   const monthKey = `${date.getFullYear()}_${(date.getMonth() + 1).toString().padStart(2, '0')}`

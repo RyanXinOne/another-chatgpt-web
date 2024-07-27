@@ -36,28 +36,6 @@ declare namespace ChatData {
   }
 }
 
-interface ConversationResponse {
-  id: string
-  choices: {
-    delta: {
-      content: string | null
-      role: string
-    }
-    logprobs: object | null
-    finish_reason: string | null
-    index: integer
-  }[]
-  created: number
-  model: string
-  system_fingerprint: string
-  object: string
-  usage: {
-    completion_tokens: number
-    prompt_tokens: number
-    total_tokens: number
-  }
-}
-
 // legacy
 declare namespace LegacyChat {
   interface State {

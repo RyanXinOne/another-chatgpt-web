@@ -1,21 +1,20 @@
 import * as dotenv from 'dotenv'
 import OpenAI from 'openai'
-import { get_encoding } from 'tiktoken'
 import type { CompletionUsage } from 'openai/src/resources/completions'
+import { get_encoding } from 'tiktoken'
 import { sendResponse } from '../utils'
 import { isNotEmptyString } from '../utils/is'
-import { logUsage } from '../middleware/logger'
-import type { Message, Model, ModelContext, RequestOptions } from './types'
+import type { OpenAIAPI } from './types'
+import type { Message, TokenLimit, Usage, ResponseChunk, StopReason } from '../types'
 
 dotenv.config({ override: true })
 
 const OPENAI_API_KEY: string = process.env.OPENAI_API_KEY ?? ''
-const DEBUG_MODE: boolean = process.env.DEBUG_MODE === 'true'
 
 if (!isNotEmptyString(OPENAI_API_KEY))
   throw new Error('Missing OPENAI_API_KEY environment variable')
 
-const model_contexts: { [model in Model]: ModelContext } = {
+const model_contexts: { [model in OpenAIAPI.Model]: TokenLimit } = {
   'gpt-4o': {
     max_context_tokens: 127000,
     max_response_tokens: 4000,
@@ -26,7 +25,7 @@ const model_contexts: { [model in Model]: ModelContext } = {
   },
 }
 
-function filterMessagesByTokenCount(messages: Message[], max_tokens?: number): { messages: Message[]; estimated_tokens: number } {
+function filterMessagesByTokenCount(messages: Message[], max_tokens?: number): Message[] {
   const encoding = get_encoding('cl100k_base')
   const tokens_per_message = 3
   const count_message_token = (message: Message) => {
@@ -50,30 +49,20 @@ function filterMessagesByTokenCount(messages: Message[], max_tokens?: number): {
     estimated_tokens += curr_tokens
   }
 
-  return { messages, estimated_tokens }
+  return messages
 }
 
 const openai = new OpenAI({
   apiKey: OPENAI_API_KEY,
 })
 
-export async function chatReplyProcess(options: RequestOptions) {
-  let { model, messages, temperature, top_p, user, callback } = options
+export async function openaiChatCompletion(options: OpenAIAPI.RequestOptions) {
+  let { model, messages, temperature, top_p, callback } = options
   if (!(model in model_contexts)) {
     return sendResponse({ type: 'Fail', message: 'Invalid model requested.' })
   }
   const { max_context_tokens, max_response_tokens } = model_contexts[model]
-  let estimated_tokens: number
-  ({ messages, estimated_tokens } = filterMessagesByTokenCount(messages, max_context_tokens - max_response_tokens))
-  if (DEBUG_MODE) {
-    global.console.log('-'.repeat(30))
-    global.console.log(`Time: ${new Date().toISOString()}`)
-    global.console.log(`Model: ${model}`)
-    global.console.log(`Temperature: ${temperature}`)
-    global.console.log(`Top P: ${top_p}`)
-    global.console.log(`Estimated tokens: ${estimated_tokens}`)
-    global.console.log(`Messages: ${JSON.stringify(messages, null, 2)}`)
-  }
+  messages = filterMessagesByTokenCount(messages, max_context_tokens - max_response_tokens)
   try {
     const stream = await openai.chat.completions.create({
       model,
@@ -90,13 +79,33 @@ export async function chatReplyProcess(options: RequestOptions) {
         usage = chunk.usage
         break
       }
-      callback(chunk)
+      let stop_reason: any = chunk.choices[0]?.finish_reason || undefined
+      switch (stop_reason) {
+        case undefined:
+          break
+        case 'stop':
+          stop_reason = 'end'
+          break
+        case 'length':
+          stop_reason = 'length'
+          break
+        default:
+          stop_reason = 'others'
+          break
+      }
+      callback({
+        delta_text: chunk.choices[0]?.delta?.content || undefined,
+        stop_reason: stop_reason as StopReason,
+      } as ResponseChunk)
     }
-    if (DEBUG_MODE) {
-      global.console.log(`Usage: ${JSON.stringify(usage, null, 2)}`)
-    }
-    await logUsage(model, usage, user)
-    return sendResponse({ type: 'Success' })
+    return sendResponse({
+      type: 'Success', data: {
+        usage: {
+          prompt_tokens: usage.prompt_tokens,
+          completion_tokens: usage.completion_tokens,
+        } as Usage
+      }
+    })
   } catch (error: any) {
     global.console.error(error)
     return sendResponse({ type: 'Fail', message: error.message })
