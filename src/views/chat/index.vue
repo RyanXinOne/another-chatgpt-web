@@ -3,7 +3,6 @@ import type { Ref } from 'vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { NAutoComplete, NButton, NInput, useDialog, useMessage } from 'naive-ui'
-import { toPng } from 'html-to-image'
 import { buildContextMessages, generateTitle } from './helper'
 import { useScroll } from './hooks/useScroll'
 import Message from './components/Message/index.vue'
@@ -206,44 +205,6 @@ function handleSubmit() {
   onConversation()
 }
 
-function handleExport() {
-  if (loadingIndex.value > -1)
-    return
-
-  const d = dialog.warning({
-    title: t('chat.exportImage'),
-    content: t('chat.exportImageConfirm'),
-    positiveText: t('common.yes'),
-    negativeText: t('common.no'),
-    onPositiveClick: async () => {
-      try {
-        d.loading = true
-        const ele = document.getElementById('image-wrapper')
-        const imgUrl = await toPng(ele as HTMLDivElement)
-        const tempLink = document.createElement('a')
-        tempLink.style.display = 'none'
-        tempLink.href = imgUrl
-        tempLink.setAttribute('download', 'chat-shot.png')
-        if (typeof tempLink.download === 'undefined')
-          tempLink.setAttribute('target', '_blank')
-        document.body.appendChild(tempLink)
-        tempLink.click()
-        document.body.removeChild(tempLink)
-        window.URL.revokeObjectURL(imgUrl)
-        d.loading = false
-        ms.success(t('chat.exportSuccess'))
-        Promise.resolve()
-      }
-      catch (error: any) {
-        ms.error(t('chat.exportFailed'))
-      }
-      finally {
-        d.loading = false
-      }
-    },
-  })
-}
-
 function handleDelete(index: number) {
   if (loadingIndex.value > -1)
     return
@@ -255,21 +216,6 @@ function handleDelete(index: number) {
     negativeText: t('common.no'),
     onPositiveClick: () => {
       chatStore.deleteMessage(cid.value, index)
-    },
-  })
-}
-
-function handleClear() {
-  if (loadingIndex.value > -1)
-    return
-
-  dialog.warning({
-    title: t('chat.clearChat'),
-    content: t('chat.clearChatConfirm'),
-    positiveText: t('common.yes'),
-    negativeText: t('common.no'),
-    onPositiveClick: () => {
-      chatStore.clearMessages(cid.value)
     },
   })
 }
@@ -331,22 +277,11 @@ const placeholder = computed(() => {
 const buttonDisabled = computed(() => {
   return loadingIndex.value > -1 || !prompt.value || prompt.value.trim() === ''
 })
-
-const footerClass = computed(() => {
-  let classes = ['p-4']
-  if (isMobile.value)
-    classes = ['sticky', 'left-0', 'bottom-0', 'right-0', 'p-2', 'pr-3', 'overflow-hidden']
-  return classes
-})
 </script>
 
 <template>
   <div class="flex flex-col w-full h-full">
-    <HeaderComponent
-      v-if="isMobile"
-      @export="handleExport"
-      @handle-clear="handleClear"
-    />
+    <HeaderComponent :loading="loadingIndex > -1" />
     <main class="flex-1 overflow-hidden relative flex justify-center">
       <div id="scrollRef" ref="scrollRef" class="w-full h-full overflow-hidden overflow-y-auto">
         <div
@@ -387,19 +322,9 @@ const footerClass = computed(() => {
         </NButton>
       </div>
     </main>
-    <footer :class="footerClass">
+    <footer :class="isMobile ? ['p-2', 'pr-3', 'overflow-hidden'] : ['p-4']">
       <div class="w-full max-w-screen-xl m-auto">
-        <div class="flex items-center justify-between space-x-2">
-          <HoverButton v-if="!isMobile" @click="handleClear">
-            <span class="text-xl text-[#4f555e] dark:text-white">
-              <SvgIcon icon="ri:delete-bin-line" />
-            </span>
-          </HoverButton>
-          <HoverButton v-if="!isMobile" @click="handleExport">
-            <span class="text-xl text-[#4f555e] dark:text-white">
-              <SvgIcon icon="ri:download-2-line" />
-            </span>
-          </HoverButton>
+        <div class="flex items-center justify-between gap-2">
           <HoverButton @click="toggleUsingContext">
             <span class="text-xl" :class="{ 'text-[#4b9e5f]': usingContext, 'text-[#a8071a]': !usingContext }">
               <SvgIcon icon="ri:chat-history-line" />

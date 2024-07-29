@@ -8,7 +8,6 @@ export declare namespace OpenAIAPI {
     messages: Message[]
     temperature?: number
     top_p?: number
-    user?: string
     callback: (chunk: ResponseChunk) => void
   }
 }
