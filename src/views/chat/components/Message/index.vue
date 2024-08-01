@@ -89,7 +89,8 @@ function handleSelect(key: 'copyText' | 'delete' | 'toggleRenderType' | 'edit') 
       emit('delete')
       return
     case 'edit':
-      editing.value = true
+      if (!props.loading)
+        editing.value = true
       return
   }
 }

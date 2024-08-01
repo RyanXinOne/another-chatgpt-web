@@ -82,7 +82,7 @@ function handleClear() {
 
 <template>
   <header
-    class="pl-4 pr-3 py-1.5 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 backdrop-blur"
+    class="pl-4 pr-3 py-1.5 dark:border-neutral-800 bg-white/80 dark:bg-black/20 backdrop-blur"
   >
     <div class="relative flex items-center justify-between gap-3 min-w-0 overflow-hidden">
       <div class="flex items-center">
