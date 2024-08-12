@@ -1,4 +1,4 @@
-import type { ChatCompletionChunk } from 'openai/src/resources/chat'
+import type { ChatCompletionChunk, ChatModel } from 'openai/src/resources/chat'
 
 export type Model = 'gpt-4o' | 'gpt-4o-mini'
 
@@ -17,6 +17,7 @@ export interface RequestOptions {
 }
 
 export interface ModelContext {
+  model_name: ChatModel
   max_context_tokens: number
   max_response_tokens: number
 }
