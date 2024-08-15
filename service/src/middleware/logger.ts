@@ -1,15 +1,15 @@
 import fs from 'fs/promises'
-import type { Model, Usage } from '../types'
+import type { Usage } from '../types'
 
 interface UsageRecord {
   [date: string]: {
     [user: string]: {
-      [model in Model]?: Usage
+      [model: string]: Usage
     }
   }
 }
 
-export async function logUsage(model: Model, usage: Usage, user?: string) {
+export async function logUsage(model: string, usage: Usage, user?: string) {
   user = user ?? '__default__'
   const date = new Date()
   const monthKey = `${date.getFullYear()}_${(date.getMonth() + 1).toString().padStart(2, '0')}`

@@ -20,7 +20,7 @@ router.post('/chat-process', [auth], async (req, res) => {
     if (DEBUG_MODE) {
       global.console.log('-'.repeat(30))
       global.console.log(`Time: ${new Date().toISOString()}`)
-      global.console.log(`Model: ${model}`)
+      global.console.log(`Requested Model: ${model}`)
       global.console.log(`Temperature: ${temperature}`)
       global.console.log(`Top P: ${top_p}`)
       global.console.log(`Messages: ${JSON.stringify(messages, null, 2)}`)
@@ -34,11 +34,12 @@ router.post('/chat-process', [auth], async (req, res) => {
         res.write(firstChunk ? chunkStr : `\n${chunkStr}`)
         firstChunk = false
       },
-    }) as { data: { usage: Usage } }
+    }) as { data: { model: string, usage: Usage } }
     if (DEBUG_MODE) {
+      global.console.log(`Upstream Model: ${response.data.model}`)
       global.console.log(`Usage: ${JSON.stringify(response.data.usage, null, 2)}`)
     }
-    await logUsage(model, response.data.usage, user)
+    await logUsage(response.data.model, response.data.usage, user)
   }
   catch (error) {
     global.console.error(error)

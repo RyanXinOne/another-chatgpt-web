@@ -23,6 +23,7 @@ export interface ResponseChunk {
 }
 
 export interface TokenLimit {
+  model_name: string
   max_context_tokens: number
   max_response_tokens: number
 }
