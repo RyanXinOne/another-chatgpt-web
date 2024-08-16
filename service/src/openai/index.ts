@@ -1,4 +1,4 @@
-import * as dotenv from 'dotenv'
+import env from '../utils/env'
 import OpenAI from 'openai'
 import type { CompletionUsage } from 'openai/src/resources/completions'
 import { get_encoding } from 'tiktoken'
@@ -7,23 +7,18 @@ import { isNotEmptyString } from '../utils/is'
 import type { OpenAIAPI } from './types'
 import type { Message, TokenLimit, Usage, ResponseChunk, StopReason } from '../types'
 
-dotenv.config({ override: true })
-
-const OPENAI_API_KEY: string = process.env.OPENAI_API_KEY ?? ''
-const MAX_CONTEXT_TOKENS: number = parseInt(process.env.MAX_CONTEXT_TOKENS) || 999999
-
-if (!isNotEmptyString(OPENAI_API_KEY))
+if (!isNotEmptyString(env.OPENAI_API_KEY))
   throw new Error('Missing OPENAI_API_KEY environment variable')
 
 const model_contexts: { [model in OpenAIAPI.Model]: TokenLimit } = {
   'gpt-4o': {
     model_name: 'gpt-4o-2024-08-06',
-    max_context_tokens: Math.min(MAX_CONTEXT_TOKENS, 127000),
+    max_context_tokens: Math.min(env.MAX_CONTEXT_TOKENS, 127000),
     max_response_tokens: 4000,
   },
   'gpt-4o-mini': {
     model_name: 'gpt-4o-mini-2024-07-18',
-    max_context_tokens: Math.min(MAX_CONTEXT_TOKENS, 127000),
+    max_context_tokens: Math.min(env.MAX_CONTEXT_TOKENS, 127000),
     max_response_tokens: 16000,
   },
 }
@@ -56,7 +51,7 @@ function filterMessagesByTokenCount(messages: Message[], max_tokens?: number): M
 }
 
 const openai = new OpenAI({
-  apiKey: OPENAI_API_KEY,
+  apiKey: env.OPENAI_API_KEY,
 })
 
 export async function openaiChatCompletion(options: OpenAIAPI.RequestOptions) {
