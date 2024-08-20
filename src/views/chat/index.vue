@@ -14,6 +14,8 @@ import { fetchChatAPIProcess } from '@/api'
 import type { PostMessage, ResponseChunk } from '@/api/helper'
 import { t } from '@/locales'
 import { debounce } from '@/utils/functions/debounce'
+import { timestamp } from '@vueuse/core'
+import { FileCard } from '@/components/common'
 
 let controller = new AbortController()
 
@@ -44,6 +46,8 @@ const inputRef = ref<Ref | null>(null)
 const debouncedSaveDraft = debounce((cid: CID | null, value: string) => {
   chatStore.updateDraftPrompt(cid, value)
 }, 500)
+
+const uploadedMedia = ref<{ id: string; name: string; type: string; content: string }[]>([])
 
 watch(prompt, (value) => {
   debouncedSaveDraft(cid.value, value)
@@ -239,6 +243,70 @@ function handleStop() {
   controller.abort()
 }
 
+function base64toBinaryBufferBlob(base64string: string, type: string) {
+  const byteChars = atob(base64string)
+  const byteNumbers = new Uint8Array(byteChars.length)
+  for (let i = 0; i < byteChars.length; i++) {
+    byteNumbers[i] = byteChars.charCodeAt(i)
+  }
+
+  return new Blob([byteNumbers.buffer], { type })
+}
+
+function handleMultiMediaInput() {
+  const multiMediaInput = document.getElementById('multiMediaInput')
+  if (multiMediaInput)
+    multiMediaInput.click()
+}
+
+function importMultiMedia(event: Event) {
+  const target = event.target as HTMLInputElement
+  if (!target || !target.files)
+    return
+  const file: File = target.files[0]
+  if (!file)
+    return
+  const reader = new FileReader()
+  reader.onload = (e) => {
+
+    const base64data = e.target?.result?.toString()
+    const stopAt = base64data?.indexOf(";") ?? 0
+    const type = base64data?.substring(5, stopAt) ?? ''
+    uploadedMedia.value.push({
+      id: timestamp().toString(),
+      name: file.name,
+      type: type,
+      content: base64data?.substring(stopAt + 8) ?? '',
+    })
+  }
+  reader.onerror = (e) => {
+    console.log("Error reading file:", e)
+  }
+  reader.readAsDataURL(file)
+
+}
+
+function handleDeleteMedia(key: string) {
+  uploadedMedia.value = uploadedMedia.value.filter((item) => item.id !== key)
+}
+
+function handleDownloadMedia(key: string) {
+  const item = uploadedMedia.value.find((item) => item.id === key)
+  if (item) {
+    const a = document.createElement('a')
+    const blob = base64toBinaryBufferBlob(item.content, item.type)
+    a.href = URL.createObjectURL(blob)
+    a.download = item.name
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  }
+}
+
+function getMedia() {
+  return uploadedMedia.value
+}
+
 // 使用storeToRefs，保证store修改后，联想部分能够重新渲染
 const { promptList: promptTemplate } = storeToRefs<any>(promptStore)
 
@@ -325,6 +393,18 @@ const buttonDisabled = computed(() => {
     <footer :class="isMobile ? ['p-2', 'pr-3', 'overflow-hidden'] : ['p-4']">
       <div class="w-full max-w-screen-xl m-auto">
         <div class="flex items-center justify-between gap-2">
+
+          <HoverButton @click="handleMultiMediaInput">
+              <input id="multiMediaInput" type="file" style="display:none" @change="importMultiMedia">
+              <span class="text-xl">
+                <SvgIcon icon="ri:upload-2-line"/>
+              </span>
+          </HoverButton>
+
+          <div>
+            <FileCard v-for="item in uploadedMedia" :name="item.name" :id="item.id" @delete="handleDeleteMedia(item.id)" @download="handleDownloadMedia(item.id)"/>
+          </div>
+
           <HoverButton @click="toggleUsingContext">
             <span class="text-xl" :class="{ 'text-[#4b9e5f]': usingContext, 'text-[#a8071a]': !usingContext }">
               <SvgIcon icon="ri:chat-history-line" />
@@ -357,3 +437,4 @@ const buttonDisabled = computed(() => {
     </footer>
   </div>
 </template>
+  
