@@ -21,15 +21,18 @@ const emit = defineEmits<Emit>()
 <template>
     <NCard
         size="small"
-        closable
         hoverable
-        @close="emit('delete', id)"
     >
-        <button @click="emit('download', id)">
-            <SvgIcon icon="ri:file-line" class="text-3xl"/>
-            <p class="truncate">
-                {{ props.name }}
-            </p>
-        </button>
+        <div class="flex">
+            <button class="pr-1" @click="emit('download', id)">
+                <SvgIcon icon="ri:file-line" class="text-xl"/>
+            </button>
+            <div class="truncate cursor-pointer flex-1 pr-1" @click="emit('download', id)">
+                <span>{{ props.name }}</span>
+            </div>
+            <button @click="emit('delete', id)" class="transition rounded-full hover:bg-neutral-100 dark:hover:bg-[#414755]">
+                <SvgIcon icon="ri:close-line" class="text-xl"/>
+            </button>
+        </div>
     </NCard>
 </template>

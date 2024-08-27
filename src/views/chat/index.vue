@@ -2,7 +2,7 @@
 import type { Ref } from 'vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { NAutoComplete, NButton, NInput, useDialog, useMessage } from 'naive-ui'
+import { NAutoComplete, NButton, NInput, useDialog, useMessage, NCard } from 'naive-ui'
 import { buildContextMessages, generateTitle } from './helper'
 import { useScroll } from './hooks/useScroll'
 import Message from './components/Message/index.vue'
@@ -48,6 +48,8 @@ const debouncedSaveDraft = debounce((cid: CID | null, value: string) => {
 }, 500)
 
 const uploadedMedia = ref<{ id: string; name: string; type: string; content: string }[]>([])
+
+const uploadedMediaVisible = ref<boolean>(false)
 
 watch(prompt, (value) => {
   debouncedSaveDraft(cid.value, value)
@@ -303,9 +305,15 @@ function handleDownloadMedia(key: string) {
   }
 }
 
+function toggleUploadedMediaVisibility() {
+  uploadedMediaVisible.value = !uploadedMediaVisible.value
+}
+
 function getMedia() {
   return uploadedMedia.value
 }
+
+
 
 // 使用storeToRefs，保证store修改后，联想部分能够重新渲染
 const { promptList: promptTemplate } = storeToRefs<any>(promptStore)
@@ -394,14 +402,25 @@ const buttonDisabled = computed(() => {
       <div class="w-full max-w-screen-xl m-auto">
         <div class="flex items-center justify-between gap-2">
 
-          <HoverButton @click="handleMultiMediaInput">
+          <HoverButton @click="toggleUploadedMediaVisibility">
               <input id="multiMediaInput" type="file" style="display:none" @change="importMultiMedia">
-              <span class="text-xl">
+              <span class="relative text-xl flex flex-row">
                 <SvgIcon icon="ri:upload-2-line"/>
+                <span v-if="uploadedMedia.length > 0" class="absolute text-xs -top-1 left-5 text-emerald-700 font-bold">
+                  {{ uploadedMedia.length }}
+                </span>
               </span>
           </HoverButton>
-
-          <div>
+          
+          <div class="transition absolute w-96 left-5 bottom-16" :class="{visible: uploadedMediaVisible, invisible: !uploadedMediaVisible, 'opacity-100': uploadedMediaVisible, 'opacity-0': !uploadedMediaVisible}">
+            <NCard @click="handleMultiMediaInput"  size="small" hoverable class="p-0 hover:cursor-pointer">
+              <button class="flex w-full h-full justify-center">
+                <input id="multiMediaInput" type="file" style="display:none" @change="importMultiMedia">
+                <span class="text-xl">
+                  <SvgIcon icon="ri:add-circle-line"/>
+                </span>
+              </button>
+            </NCard>
             <FileCard v-for="item in uploadedMedia" :name="item.name" :id="item.id" @delete="handleDeleteMedia(item.id)" @download="handleDownloadMedia(item.id)"/>
           </div>
 
