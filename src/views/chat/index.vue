@@ -47,7 +47,7 @@ const debouncedSaveDraft = debounce((cid: CID | null, value: string) => {
   chatStore.updateDraftPrompt(cid, value)
 }, 500)
 
-const uploadedMedia = ref<{ id: string; name: string; type: string; content: string }[]>([])
+const uploadedMedia = ref<UploadedFile[]>([])
 
 const uploadedMediaVisible = ref<boolean>(false)
 
@@ -278,6 +278,7 @@ function importMultiMedia(event: Event) {
       id: timestamp().toString(),
       name: file.name,
       type: type,
+      size: file.size,
       content: base64data?.substring(stopAt + 8) ?? '',
     })
   }
@@ -358,7 +359,7 @@ const buttonDisabled = computed(() => {
 <template>
   <div class="flex flex-col w-full h-full">
     <HeaderComponent :loading="loadingIndex > -1" />
-    <main class="flex-1 overflow-hidden relative flex justify-center">
+    <main class="flex-1 overflow-hidden relative flex justify-center" @click="uploadedMediaVisible = false">
       <div id="scrollRef" ref="scrollRef" class="w-full h-full overflow-hidden overflow-y-auto">
         <div
           class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
@@ -412,7 +413,7 @@ const buttonDisabled = computed(() => {
               </span>
           </HoverButton>
           
-          <div class="transition absolute w-96 left-5 bottom-16" :class="{visible: uploadedMediaVisible, invisible: !uploadedMediaVisible, 'opacity-100': uploadedMediaVisible, 'opacity-0': !uploadedMediaVisible}">
+          <div class="transition absolute w-96 left-5 bottom-16 shadow-md" :class="{visible: uploadedMediaVisible, invisible: !uploadedMediaVisible, 'opacity-100': uploadedMediaVisible, 'opacity-0': !uploadedMediaVisible}">
             <NCard @click="handleMultiMediaInput"  size="small" hoverable class="p-0 hover:cursor-pointer">
               <button class="flex w-full h-full justify-center">
                 <input id="multiMediaInput" type="file" style="display:none" @change="importMultiMedia">
@@ -421,7 +422,7 @@ const buttonDisabled = computed(() => {
                 </span>
               </button>
             </NCard>
-            <FileCard v-for="item in uploadedMedia" :name="item.name" :id="item.id" @delete="handleDeleteMedia(item.id)" @download="handleDownloadMedia(item.id)"/>
+            <FileCard v-for="item in uploadedMedia" :name="item.name" :id="item.id" :size="item.size" @delete="handleDeleteMedia(item.id)" @download="handleDownloadMedia(item.id)"/>
           </div>
 
           <HoverButton @click="toggleUsingContext">

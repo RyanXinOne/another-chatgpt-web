@@ -6,6 +6,14 @@ interface Chat {
   data: ChatData.Main
 }
 
+interface UploadedFile {
+  id: string
+  name: string
+  type: string
+  size: number
+  content: string
+}
+
 declare namespace ChatState {
   interface Main {
     active: CID | null
