@@ -1,4 +1,4 @@
-import * as dotenv from 'dotenv'
+import env from '../utils/env'
 import OpenAI from 'openai'
 import type { CompletionUsage } from 'openai/src/resources/completions'
 import { get_encoding } from 'tiktoken'
@@ -7,20 +7,18 @@ import { isNotEmptyString } from '../utils/is'
 import type { OpenAIAPI } from './types'
 import type { Message, TokenLimit, Usage, ResponseChunk, StopReason } from '../types'
 
-dotenv.config({ override: true })
-
-const OPENAI_API_KEY: string = process.env.OPENAI_API_KEY ?? ''
-
-if (!isNotEmptyString(OPENAI_API_KEY))
+if (!isNotEmptyString(env.OPENAI_API_KEY))
   throw new Error('Missing OPENAI_API_KEY environment variable')
 
 const model_contexts: { [model in OpenAIAPI.Model]: TokenLimit } = {
   'gpt-4o': {
-    max_context_tokens: 127000,
+    model_name: 'gpt-4o-2024-08-06',
+    max_context_tokens: Math.min(env.MAX_CONTEXT_TOKENS, 127000),
     max_response_tokens: 4000,
   },
   'gpt-4o-mini': {
-    max_context_tokens: 127000,
+    model_name: 'gpt-4o-mini-2024-07-18',
+    max_context_tokens: Math.min(env.MAX_CONTEXT_TOKENS, 127000),
     max_response_tokens: 16000,
   },
 }
@@ -53,7 +51,7 @@ function filterMessagesByTokenCount(messages: Message[], max_tokens?: number): M
 }
 
 const openai = new OpenAI({
-  apiKey: OPENAI_API_KEY,
+  apiKey: env.OPENAI_API_KEY,
 })
 
 export async function openaiChatCompletion(options: OpenAIAPI.RequestOptions) {
@@ -61,11 +59,11 @@ export async function openaiChatCompletion(options: OpenAIAPI.RequestOptions) {
   if (!(model in model_contexts)) {
     return sendResponse({ type: 'Fail', message: 'Invalid model requested.' })
   }
-  const { max_context_tokens, max_response_tokens } = model_contexts[model]
+  const { model_name, max_context_tokens, max_response_tokens } = model_contexts[model]
   messages = filterMessagesByTokenCount(messages, max_context_tokens - max_response_tokens)
   try {
     const stream = await openai.chat.completions.create({
-      model,
+      model: model_name,
       messages,
       max_tokens: max_response_tokens,
       stream: true,
@@ -100,6 +98,7 @@ export async function openaiChatCompletion(options: OpenAIAPI.RequestOptions) {
     }
     return sendResponse({
       type: 'Success', data: {
+        model: model_name,
         usage: {
           prompt_tokens: usage.prompt_tokens,
           completion_tokens: usage.completion_tokens,

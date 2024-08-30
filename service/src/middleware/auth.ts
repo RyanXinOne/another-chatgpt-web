@@ -21,9 +21,16 @@ const auth = async (req, res, next) => {
   }
 }
 
+let authConfig = undefined
+
 async function getAuthConfig() {
-  const fileContents = await fs.readFile('auth.json', 'utf8').catch(() => '{}')
-  return JSON.parse(fileContents)
+  authConfig = authConfig ?? JSON.parse(await fs.readFile('auth.json', 'utf8').catch(() => '{}'))
+  return authConfig
 }
 
-export { auth, getAuthConfig }
+async function isHavingAuth() {
+  const authConfig = await getAuthConfig()
+  return Object.keys(authConfig).length > 0
+}
+
+export { auth, getAuthConfig, isHavingAuth }
