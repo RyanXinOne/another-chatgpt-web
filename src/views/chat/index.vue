@@ -47,9 +47,19 @@ const debouncedSaveDraft = debounce((cid: CID | null, value: string) => {
   chatStore.updateDraftPrompt(cid, value)
 }, 500)
 
-const uploadedMedia = ref<UploadedFile[]>([])
+const uploadedFiles = ref<UploadedFile[]>([])
 
-const uploadedMediaVisible = ref<boolean>(false)
+const uploadedFilesVisible = ref<boolean>(false)
+
+const hideUploadedFilesSignal = ref<boolean>(false)
+
+const uploadedFilesPopupStyles = computed(() => ({
+  'visible': uploadedFilesVisible.value,
+  'opacity-100': uploadedFilesVisible.value,
+  'invisible': !uploadedFilesVisible.value,
+  'opacity-0': !uploadedFilesVisible.value,
+}))
+
 
 watch(prompt, (value) => {
   debouncedSaveDraft(cid.value, value)
@@ -255,13 +265,13 @@ function base64toBinaryBufferBlob(base64string: string, type: string) {
   return new Blob([byteNumbers.buffer], { type })
 }
 
-function handleMultiMediaInput() {
-  const multiMediaInput = document.getElementById('multiMediaInput')
-  if (multiMediaInput)
-    multiMediaInput.click()
+function handleFileInput() {
+  const fileInput = document.getElementById('fileInput')
+  if (fileInput)
+    fileInput.click()
 }
 
-function importMultiMedia(event: Event) {
+function importFile(event: Event) {
   const target = event.target as HTMLInputElement
   if (!target || !target.files)
     return
@@ -274,7 +284,7 @@ function importMultiMedia(event: Event) {
     const base64data = e.target?.result?.toString()
     const stopAt = base64data?.indexOf(";") ?? 0
     const type = base64data?.substring(5, stopAt) ?? ''
-    uploadedMedia.value.push({
+    uploadedFiles.value.push({
       id: timestamp().toString(),
       name: file.name,
       type: type,
@@ -289,12 +299,12 @@ function importMultiMedia(event: Event) {
 
 }
 
-function handleDeleteMedia(key: string) {
-  uploadedMedia.value = uploadedMedia.value.filter((item) => item.id !== key)
+function handleDeleteFile(key: string) {
+  uploadedFiles.value = uploadedFiles.value.filter((item) => item.id !== key)
 }
 
-function handleDownloadMedia(key: string) {
-  const item = uploadedMedia.value.find((item) => item.id === key)
+function handleDownloadFile(key: string) {
+  const item = uploadedFiles.value.find((item) => item.id === key)
   if (item) {
     const a = document.createElement('a')
     const blob = base64toBinaryBufferBlob(item.content, item.type)
@@ -306,12 +316,27 @@ function handleDownloadMedia(key: string) {
   }
 }
 
-function toggleUploadedMediaVisibility() {
-  uploadedMediaVisible.value = !uploadedMediaVisible.value
+function toggleUploadedFilesVisibility() {
+  uploadedFilesVisible.value = !uploadedFilesVisible.value
+  if (uploadedFilesVisible.value) {
+    hideUploadedFilesSignal.value = false
+  }
 }
 
-function getMedia() {
-  return uploadedMedia.value
+function handleShowPopup() {
+  uploadedFilesVisible.value = true
+  hideUploadedFilesSignal.value = false
+}
+
+function handleDelayHidePopup() {
+  hideUploadedFilesSignal.value = true
+  setTimeout(() => {
+    if (hideUploadedFilesSignal.value) uploadedFilesVisible.value = false
+  }, 200)
+}
+
+function getFiles() {
+  return uploadedFiles.value
 }
 
 
@@ -359,7 +384,7 @@ const buttonDisabled = computed(() => {
 <template>
   <div class="flex flex-col w-full h-full">
     <HeaderComponent :loading="loadingIndex > -1" />
-    <main class="flex-1 overflow-hidden relative flex justify-center" @click="uploadedMediaVisible = false">
+    <main class="flex-1 overflow-hidden relative flex justify-center" @click="uploadedFilesVisible = false">
       <div id="scrollRef" ref="scrollRef" class="w-full h-full overflow-hidden overflow-y-auto">
         <div
           class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
@@ -401,35 +426,40 @@ const buttonDisabled = computed(() => {
     </main>
     <footer :class="isMobile ? ['p-2', 'pr-3', 'overflow-hidden'] : ['p-4']">
       <div class="w-full max-w-screen-xl m-auto">
-        <div class="flex items-center justify-between gap-2">
-
-          <HoverButton @click="toggleUploadedMediaVisibility">
-              <input id="multiMediaInput" type="file" style="display:none" @change="importMultiMedia">
-              <span class="relative text-xl flex flex-row">
-                <SvgIcon icon="ri:upload-2-line"/>
-                <span v-if="uploadedMedia.length > 0" class="absolute text-xs -top-1 left-5 text-emerald-700 font-bold">
-                  {{ uploadedMedia.length }}
-                </span>
-              </span>
-          </HoverButton>
-          
-          <div class="transition absolute w-96 left-5 bottom-16 shadow-md" :class="{visible: uploadedMediaVisible, invisible: !uploadedMediaVisible, 'opacity-100': uploadedMediaVisible, 'opacity-0': !uploadedMediaVisible}">
-            <NCard @click="handleMultiMediaInput"  size="small" hoverable class="p-0 hover:cursor-pointer">
-              <button class="flex w-full h-full justify-center">
-                <input id="multiMediaInput" type="file" style="display:none" @change="importMultiMedia">
-                <span class="text-xl">
-                  <SvgIcon icon="ri:add-circle-line"/>
-                </span>
-              </button>
-            </NCard>
-            <FileCard v-for="item in uploadedMedia" :name="item.name" :id="item.id" :size="item.size" @delete="handleDeleteMedia(item.id)" @download="handleDownloadMedia(item.id)"/>
-          </div>
+        <div class="flex items-center justify-between gap-2" @mouseleave="handleDelayHidePopup">
 
           <HoverButton @click="toggleUsingContext">
             <span class="text-xl" :class="{ 'text-[#4b9e5f]': usingContext, 'text-[#a8071a]': !usingContext }">
               <SvgIcon icon="ri:chat-history-line" />
             </span>
           </HoverButton>
+          
+          <HoverButton @click="toggleUploadedFilesVisibility" @mouseenter="handleShowPopup" @mouseleave="handleDelayHidePopup">
+              <input id="fileInput" type="file" style="display:none" @change="importFile">
+              <span class="relative text-xl flex flex-row">
+                <SvgIcon icon="ri:upload-2-line"/>
+                <span v-if="uploadedFiles.length > 0" class="absolute text-xs -top-1 left-5 text-emerald-700 font-bold">
+                  {{ uploadedFiles.length }}
+                </span>
+              </span>
+          </HoverButton>
+          
+          <div
+            class="transition absolute w-96 left-5 bottom-16 shadow-md" 
+            :class="uploadedFilesPopupStyles" 
+            @mouseenter="handleShowPopup" 
+            @mouseleave="handleDelayHidePopup">
+            <NCard @click="handleFileInput"  size="small" hoverable class="p-0 hover:cursor-pointer">
+              <button class="flex w-full h-full justify-center">
+                <input id="fileInput" type="file" style="display:none" @change="importFile">
+                <span class="text-xl">
+                  <SvgIcon icon="ri:add-circle-line"/>
+                </span>
+              </button>
+            </NCard>
+            <FileCard v-for="item in uploadedFiles" :key="item.id" :name="item.name" :id="item.id" :size="item.size" @delete="handleDeleteFile(item.id)" @download="handleDownloadFile(item.id)" />
+          </div>
+
           <NAutoComplete v-model:value="prompt" :options="searchOptions" :render-label="renderOption">
             <template #default="{ handleInput, handleBlur, handleFocus }">
               <NInput
