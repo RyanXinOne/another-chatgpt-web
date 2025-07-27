@@ -1,6 +1,6 @@
 import env from '../utils/env'
 import OpenAI from 'openai'
-import type { CompletionUsage } from 'openai/src/resources/completions'
+import type { ResponseUsage } from 'openai/src/resources/responses/responses'
 import { get_encoding } from 'tiktoken'
 import { sendResponse } from '../utils'
 import { isNotEmptyString } from '../utils/is'
@@ -11,6 +11,16 @@ if (!isNotEmptyString(env.OPENAI_API_KEY))
   throw new Error('Missing OPENAI_API_KEY environment variable')
 
 const model_contexts: { [model in OpenAIAPI.Model]: TokenLimit } = {
+  'gpt-4.1': {
+    model_name: 'gpt-4.1-2025-04-14',
+    max_context_tokens: Math.min(env.MAX_CONTEXT_TOKENS, 1047576),
+    max_response_tokens: 32768,
+  },
+  'o4-mini': {
+    model_name: 'o4-mini-2025-04-16',
+    max_context_tokens: Math.min(env.MAX_CONTEXT_TOKENS, 200000),
+    max_response_tokens: 10000,
+  },
   'gpt-4o': {
     model_name: 'gpt-4o-2024-11-20',
     max_context_tokens: Math.min(env.MAX_CONTEXT_TOKENS, 127000),
@@ -29,7 +39,18 @@ function filterMessagesByTokenCount(messages: Message[], max_tokens?: number): M
   const count_message_token = (message: Message) => {
     let tokens = tokens_per_message
     tokens += encoding.encode(message.role).length
-    tokens += encoding.encode(message.content).length
+    for (const content of message.content) {
+      if (content.type === 'input_text') {
+        tokens += encoding.encode(content.text).length
+      }
+      else if (content.type === 'input_image') {
+        tokens += 1000 // Rough estimate for image tokens, which is capped by 1536 when width/32*height/32 is bigger than it.
+      }
+      else if (content.type === 'input_file') {
+        tokens += encoding.encode(content.filename).length
+        tokens += encoding.encode(content.file_data).length
+      } 
+    }
     return tokens
   }
   let estimated_tokens = 3
@@ -62,37 +83,32 @@ export async function openaiChatCompletion(options: OpenAIAPI.RequestOptions) {
   const { model_name, max_context_tokens, max_response_tokens } = model_contexts[model]
   messages = filterMessagesByTokenCount(messages, max_context_tokens - max_response_tokens)
   try {
-    const stream = await openai.chat.completions.create({
+    const stream = await openai.responses.create({
       model: model_name,
-      messages,
-      max_tokens: max_response_tokens,
+      input: messages,
+      max_output_tokens: max_response_tokens,
+      store: false,
       stream: true,
-      stream_options: { include_usage: true },
       temperature,
       top_p,
     })
-    let usage: CompletionUsage
+    let usage: ResponseUsage
     for await (const chunk of stream) {
-      if (chunk.usage) {
-        usage = chunk.usage
+      if (chunk.response?.usage) {
+        usage = chunk.response.usage
         break
       }
-      let stop_reason: any = chunk.choices[0]?.finish_reason || undefined
+      let stop_reason: any = chunk.response?.error?.code || undefined
       switch (stop_reason) {
         case undefined:
-          break
-        case 'stop':
           stop_reason = 'end'
-          break
-        case 'length':
-          stop_reason = 'length'
           break
         default:
           stop_reason = 'others'
           break
       }
       callback({
-        delta_text: chunk.choices[0]?.delta?.content || undefined,
+        delta_text: chunk.delta || undefined,
         stop_reason: stop_reason as StopReason,
       } as ResponseChunk)
     }
@@ -100,8 +116,9 @@ export async function openaiChatCompletion(options: OpenAIAPI.RequestOptions) {
       type: 'Success', data: {
         model: model_name,
         usage: {
-          prompt_tokens: usage.prompt_tokens,
-          completion_tokens: usage.completion_tokens,
+          input_tokens: usage.input_tokens,
+          output_tokens: usage.output_tokens,
+          total_tokens: usage.total_tokens,
         } as Usage
       }
     })

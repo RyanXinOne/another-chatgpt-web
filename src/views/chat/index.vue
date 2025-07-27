@@ -2,7 +2,7 @@
 import type { Ref } from 'vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { NAutoComplete, NButton, NInput, useDialog, useMessage } from 'naive-ui'
+import { NAutoComplete, NButton, NInput, useDialog, useMessage, NCard } from 'naive-ui'
 import { buildContextMessages, generateTitle } from './helper'
 import { useScroll } from './hooks/useScroll'
 import Message from './components/Message/index.vue'
@@ -14,6 +14,8 @@ import { fetchChatAPIProcess } from '@/api'
 import type { PostMessage, ResponseChunk } from '@/api/helper'
 import { t } from '@/locales'
 import { debounce } from '@/utils/functions/debounce'
+import { timestamp } from '@vueuse/core'
+import { FileCard } from '@/components/common'
 
 let controller = new AbortController()
 
@@ -44,6 +46,20 @@ const inputRef = ref<Ref | null>(null)
 const debouncedSaveDraft = debounce((cid: CID | null, value: string) => {
   chatStore.updateDraftPrompt(cid, value)
 }, 500)
+
+const uploadedFiles = ref<UploadedFile[]>([])
+
+const uploadedFilesVisible = ref<boolean>(false)
+
+const hideUploadedFilesSignal = ref<boolean>(false)
+
+const uploadedFilesPopupStyles = computed(() => ({
+  'visible': uploadedFilesVisible.value,
+  'opacity-100': uploadedFilesVisible.value,
+  'invisible': !uploadedFilesVisible.value,
+  'opacity-0': !uploadedFilesVisible.value,
+}))
+
 
 watch(prompt, (value) => {
   debouncedSaveDraft(cid.value, value)
@@ -123,7 +139,7 @@ async function chatProcess(cid: CID | null, index: number, usingContext: boolean
             if (openLongReply && data[data.length - 1].stop_reason === 'length') {
               lastText = text
               messages = buildContextMessages(cid, usingContext ? 0 : index - 1, index + 1)
-              messages.push({ role: 'user', content: '' })
+              messages.push({ role: 'user', content:[{ type: 'input_text', text: '' }] })
               return fetchChatAPIOnce()
             }
           }
@@ -173,13 +189,26 @@ async function onConversation() {
   const messageCid = cid.value
   const messageIndex = dataSources.value.length + 1
 
-  chatStore.addMessage(messageCid, prompt.value, true)
+  const multimedia: ChatData.MessageMultimedia[] = []
+  const acceptedImageTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
+  for (const mediaFile of uploadedFiles.value) {
+    multimedia.push({
+      id: mediaFile.id,
+      name: mediaFile.name,
+      type: acceptedImageTypes.includes(mediaFile.type) ? 'image_url' : 'file',
+      contentBase64: mediaFile.content,
+    })
+  }
+
+  chatStore.addMessage(messageCid, prompt.value, multimedia, true)
   if (chatStore.getTitle(messageCid) === t('chat.newChatTitle')) {
     generateTitle(messageCid)
   }
-  chatStore.addMessage(messageCid, t('chat.thinking'), false)
+  chatStore.addMessage(messageCid, t('chat.thinking'), [], false)
   scrollToBottom()
+
   prompt.value = ''
+  uploadedFiles.value = []
 
   await chatProcess(messageCid, messageIndex, usingContext.value)
 }
@@ -239,6 +268,90 @@ function handleStop() {
   controller.abort()
 }
 
+function base64toBinaryBufferBlob(base64string: string, type: string) {
+  const byteChars = atob(base64string)
+  const byteNumbers = new Uint8Array(byteChars.length)
+  for (let i = 0; i < byteChars.length; i++) {
+    byteNumbers[i] = byteChars.charCodeAt(i)
+  }
+
+  return new Blob([byteNumbers.buffer], { type })
+}
+
+function handleFileInput() {
+  const fileInput = document.getElementById('fileInput')
+  if (fileInput)
+    fileInput.click()
+}
+
+function importFile(event: Event) {
+  const target = event.target as HTMLInputElement
+  if (!target || !target.files)
+    return
+  const file: File = target.files[0]
+  if (!file)
+    return
+  const reader = new FileReader()
+  reader.onload = (e) => {
+
+    const base64data = e.target?.result?.toString()
+    const stopAt = base64data?.indexOf(";") ?? 0
+    const type = base64data?.substring(5, stopAt) ?? ''
+    uploadedFiles.value.push({
+      id: timestamp().toString(),
+      name: file.name,
+      type: type,
+      size: file.size,
+      content: base64data ?? '', // Better including full MIME header in the base64 string
+    })
+
+    target.value = '' // Reset the file input value to allow re-uploading file with the same name
+  }
+  reader.onerror = (e) => {
+    console.log("Error reading file:", e)
+  }
+  reader.readAsDataURL(file)
+
+}
+
+function handleDeleteFile(key: string) {
+  uploadedFiles.value = uploadedFiles.value.filter((item) => item.id !== key)
+}
+
+function handleDownloadFile(key: string) {
+  const item = uploadedFiles.value.find((item) => item.id === key)
+  if (item) {
+    const a = document.createElement('a')
+    const blob = base64toBinaryBufferBlob(item.content, item.type)
+    a.href = URL.createObjectURL(blob)
+    a.download = item.name
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  }
+}
+
+function toggleUploadedFilesVisibility() {
+  uploadedFilesVisible.value = !uploadedFilesVisible.value
+  if (uploadedFilesVisible.value) {
+    hideUploadedFilesSignal.value = false
+  }
+}
+
+function handleShowPopup() {
+  uploadedFilesVisible.value = true
+  hideUploadedFilesSignal.value = false
+}
+
+function handleDelayHidePopup() {
+  hideUploadedFilesSignal.value = true
+  setTimeout(() => {
+    if (hideUploadedFilesSignal.value) uploadedFilesVisible.value = false
+  }, 200)
+}
+
+
+
 // 使用storeToRefs，保证store修改后，联想部分能够重新渲染
 const { promptList: promptTemplate } = storeToRefs<any>(promptStore) as { promptList: Ref<any> }
 
@@ -282,7 +395,7 @@ const buttonDisabled = computed(() => {
 <template>
   <div class="flex flex-col w-full h-full">
     <HeaderComponent :loading="loadingIndex > -1" />
-    <main class="flex-1 overflow-hidden relative flex justify-center">
+    <main class="flex-1 overflow-hidden relative flex justify-center" @click="uploadedFilesVisible = false">
       <div id="scrollRef" ref="scrollRef" class="w-full h-full overflow-hidden overflow-y-auto">
         <div
           class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
@@ -324,12 +437,40 @@ const buttonDisabled = computed(() => {
     </main>
     <footer :class="isMobile ? ['p-2', 'pr-3', 'overflow-hidden'] : ['p-4']">
       <div class="w-full max-w-screen-xl m-auto">
-        <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center justify-between gap-2" @mouseleave="handleDelayHidePopup">
+
           <HoverButton @click="toggleUsingContext">
             <span class="text-xl" :class="{ 'text-[#4b9e5f]': usingContext, 'text-[#a8071a]': !usingContext }">
               <SvgIcon icon="ri:chat-history-line" />
             </span>
           </HoverButton>
+          
+          <HoverButton @click="toggleUploadedFilesVisibility" @mouseenter="handleShowPopup" @mouseleave="handleDelayHidePopup">
+              <input id="fileInput" type="file" style="display:none" @change="importFile">
+              <span class="relative text-xl flex flex-row">
+                <SvgIcon icon="ri:upload-2-line"/>
+                <span v-if="uploadedFiles.length > 0" class="absolute text-xs -top-1 left-5 text-emerald-700 font-bold">
+                  {{ uploadedFiles.length }}
+                </span>
+              </span>
+          </HoverButton>
+          
+          <div
+            class="transition absolute w-96 left-5 bottom-16 shadow-md" 
+            :class="uploadedFilesPopupStyles" 
+            @mouseenter="handleShowPopup" 
+            @mouseleave="handleDelayHidePopup">
+            <NCard @click="handleFileInput"  size="small" hoverable class="p-0 hover:cursor-pointer">
+              <button class="flex w-full h-full justify-center">
+                <input id="fileInput" type="file" style="display:none" @change="importFile">
+                <span class="text-xl">
+                  <SvgIcon icon="ri:add-circle-line"/>
+                </span>
+              </button>
+            </NCard>
+            <FileCard v-for="item in uploadedFiles" :key="item.id" :name="item.name" :id="item.id" :size="item.size" @delete="handleDeleteFile(item.id)" @download="handleDownloadFile(item.id)" />
+          </div>
+
           <NAutoComplete v-model:value="prompt" :options="searchOptions" :render-label="renderOption">
             <template #default="{ handleInput, handleBlur, handleFocus }">
               <NInput
@@ -357,3 +498,4 @@ const buttonDisabled = computed(() => {
     </footer>
   </div>
 </template>
+  

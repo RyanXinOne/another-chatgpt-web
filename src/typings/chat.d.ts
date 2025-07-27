@@ -6,6 +6,14 @@ interface Chat {
   data: ChatData.Main
 }
 
+interface UploadedFile {
+  id: string
+  name: string
+  type: string
+  size: number
+  content: string
+}
+
 declare namespace ChatState {
   interface Main {
     active: CID | null
@@ -31,8 +39,16 @@ declare namespace ChatData {
     mid: MID
     dateTime: string
     text: string
+    multimedia?: ChatData.MessageMultimedia[]
     inversion: boolean
     error?: boolean
+  }
+
+  interface MessageMultimedia {
+    id: string
+    name: string
+    type: 'image_url' | 'file'
+    contentBase64: string
   }
 }
 

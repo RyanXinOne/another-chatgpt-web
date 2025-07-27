@@ -117,13 +117,14 @@ export const useChatStore = defineStore('chat-store', {
       return this.data[cid].messages[messageIndex]
     },
 
-    addMessage(cid: CID | null, text: string, inversion: boolean) {
+    addMessage(cid: CID | null, text: string, multimedia: ChatData.MessageMultimedia[], inversion: boolean) {
       if (cid === null)
         return
       const message: ChatData.Message = {
         mid: uuidv4(),
         dateTime: new Date().toLocaleString(),
         text,
+        multimedia: multimedia || [],
         inversion,
         error: false,
       }

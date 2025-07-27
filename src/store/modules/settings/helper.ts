@@ -2,7 +2,7 @@ import { ls } from '@/utils/storage'
 
 const LOCAL_NAME = 'settingsStorage'
 
-export type Model = 'gpt-4o' | 'gpt-4o-mini'
+export type Model = 'gpt-4.1' | 'o4-mini' | 'gpt-4o' | 'gpt-4o-mini'
 
 export interface SettingsState {
   model: Model

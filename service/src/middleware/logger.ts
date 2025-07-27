@@ -20,9 +20,9 @@ export async function logUsage(model: string, usage: Usage, user?: string) {
 
   record[dateKey] = record[dateKey] ?? {}
   record[dateKey][user] = record[dateKey][user] ?? {}
-  record[dateKey][user][model] = record[dateKey][user][model] ?? { prompt_tokens: 0, completion_tokens: 0 }
-  record[dateKey][user][model].prompt_tokens += usage.prompt_tokens
-  record[dateKey][user][model].completion_tokens += usage.completion_tokens
+  record[dateKey][user][model] = record[dateKey][user][model] ?? { input_tokens: 0, output_tokens: 0, total_tokens: 0 }
+  record[dateKey][user][model].input_tokens += usage.input_tokens
+  record[dateKey][user][model].output_tokens += usage.output_tokens
 
   fs.mkdir('logs', { recursive: true })
   await fs.writeFile(`logs/${monthKey}.json`, JSON.stringify(record, null, 2))

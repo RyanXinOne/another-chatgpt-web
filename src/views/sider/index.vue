@@ -44,6 +44,8 @@ const modelOptions = computed<Array<SelectGroupOption>>(() => [{
   label: t('setting.model'),
   key: 'model',
   children: [
+    { label: 'gpt-4.1', value: 'gpt-4.1' },
+    { label: 'o4-mini', value: 'o4-mini' },
     { label: 'gpt-4o', value: 'gpt-4o' },
     { label: 'gpt-4o-mini', value: 'gpt-4o-mini' },
   ],

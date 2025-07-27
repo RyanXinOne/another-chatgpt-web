@@ -2,9 +2,15 @@ import type { OpenAIAPI } from './openai/types'
 
 export type Model = OpenAIAPI.Model
 
+export type MessageContentTypes = 
+  | { type: 'input_text', text: string }
+  | { type: 'output_text', text: string }
+  | { type: 'input_image', image_url: string }
+  | { type: 'input_file', filename: string, file_data: string }
+
 export interface Message {
   role: 'system' | 'user' | 'assistant'
-  content: string
+  content: MessageContentTypes[]
 }
 
 export interface RequestProps {
@@ -29,6 +35,7 @@ export interface TokenLimit {
 }
 
 export interface Usage {
-  prompt_tokens: number
-  completion_tokens: number
+  input_tokens: number
+  output_tokens: number
+  total_tokens: number
 }
