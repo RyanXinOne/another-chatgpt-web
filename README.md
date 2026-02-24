@@ -44,7 +44,7 @@ More coming...
 
 ### Node
 
-`node` >= 18
+`node` >= 20
 
 ### PNPM
 
