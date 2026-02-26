@@ -76,7 +76,7 @@ export async function generateTitle(cid: CID | null) {
   messages.push({ role: 'system', content: [{ type: 'input_text', text: 'Extract keywords from above messages to generate a summary title of the conversation topic, following the language used by the user. Respond as briefly as possible (less than 10 words) and do not add heading.' }] })
   try {
     await fetchChatAPIProcess<ResponseChunk>({
-      model: 'gpt-4.1',
+      model: 'gpt-5.2',
       messages,
       temperature: 0,
       top_p: 1,

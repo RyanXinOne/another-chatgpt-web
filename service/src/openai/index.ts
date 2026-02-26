@@ -11,25 +11,15 @@ if (!isNotEmptyString(env.OPENAI_API_KEY))
   throw new Error('Missing OPENAI_API_KEY environment variable')
 
 const model_contexts: { [model in OpenAIAPI.Model]: TokenLimit } = {
-  'gpt-4.1': {
-    model_name: 'gpt-4.1-2025-04-14',
-    max_context_tokens: Math.min(env.MAX_CONTEXT_TOKENS, 1047576),
-    max_response_tokens: 32768,
+  'gpt-5.2': {
+    model_name: 'gpt-5.2',
+    max_context_tokens: Math.min(env.MAX_CONTEXT_TOKENS, 360000),
+    max_response_tokens: 30000,
   },
-  'o4-mini': {
-    model_name: 'o4-mini-2025-04-16',
-    max_context_tokens: Math.min(env.MAX_CONTEXT_TOKENS, 200000),
-    max_response_tokens: 10000,
-  },
-  'gpt-4o': {
-    model_name: 'gpt-4o-2024-11-20',
-    max_context_tokens: Math.min(env.MAX_CONTEXT_TOKENS, 127000),
-    max_response_tokens: 15000,
-  },
-  'gpt-4o-mini': {
-    model_name: 'gpt-4o-mini-2024-07-18',
-    max_context_tokens: Math.min(env.MAX_CONTEXT_TOKENS, 127000),
-    max_response_tokens: 15000,
+  'gpt-5.1': {
+    model_name: 'gpt-5.1',
+    max_context_tokens: Math.min(env.MAX_CONTEXT_TOKENS, 360000),
+    max_response_tokens: 30000,
   },
 }
 

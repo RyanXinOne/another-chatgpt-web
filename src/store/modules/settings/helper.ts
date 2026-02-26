@@ -2,7 +2,7 @@ import { ls } from '@/utils/storage'
 
 const LOCAL_NAME = 'settingsStorage'
 
-export type Model = 'gpt-4.1' | 'o4-mini' | 'gpt-4o' | 'gpt-4o-mini'
+export type Model = 'gpt-5.2' | 'gpt-5.1'
 
 export interface SettingsState {
   model: Model
@@ -13,7 +13,7 @@ export interface SettingsState {
 
 export function defaultSetting(): SettingsState {
   return {
-    model: 'gpt-4o',
+    model: 'gpt-5.2',
     systemMessage: 'You are ChatGPT, a large language model trained by OpenAI. Follow the user\'s instructions carefully. Respond using markdown.',
     temperature: 1,
     top_p: 1,
